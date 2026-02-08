@@ -1,0 +1,44 @@
+### 1. Get all students
+GET http://localhost:3000/api/students
+
+### 2. Create a new student (POST)
+POST http://localhost:3000/api/students
+Content-Type: application/json
+
+{
+  "firstName": "Pedro",
+  "lastName": "Duran",
+  "email": "pedrn@gmail.com",
+  "major": "Ingeniería informática",
+  "semester": 10,
+  "gpa": 4.0,
+  "enrollmentDate": "2019-01-19"
+}
+
+### 3. Filter by major (GET with Query Params)
+GET http://localhost:3000/api/students?major=Ingeniería informática
+
+### 4. Soft Delete (DELETE)
+DELETE http://localhost:3000/api/students/1
+
+### 5. Full Update (PUT)
+PUT http://localhost:3000/api/students/1
+Content-Type: application/json
+
+{
+  "firstName": "Maikol",
+  "lastName": "Miery Updated",
+  "email": "maikol.updated@gmail.com",
+  "major": "Ingeniería informática",
+  "semester": 9,
+  "gpa": 4.0,
+  "enrollmentDate": "2021-01-19"
+}
+
+### 6. Partial Update (PATCH)
+PATCH http://localhost:3000/api/students/1
+Content-Type: application/json
+
+{
+  "gpa": 4
+}

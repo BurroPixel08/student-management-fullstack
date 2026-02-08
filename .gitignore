@@ -1,0 +1,6 @@
+node_modules/
+database.db
+backend/*.db
+
+# Ignora carpetas de compilación de Vue
+dist/
