@@ -5,6 +5,9 @@ const studentController = require('../controllers/student-controller');
 //ROUTE TO OBTAIN ALL STUDENTS (GET)
 router.get('/', studentController.getAllStudents);
 
+// ROUTE TO GET ALL STATISCS FROM STUDENTS ON GENERAL
+router.get('/statistics', studentController.getStatistics);
+
 // ROUTE TO GET ONE BY ID (GET)
 router.get('/:id', studentController.getStudentById);
 

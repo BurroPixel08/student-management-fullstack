@@ -8,11 +8,12 @@ Content-Type: application/json
 {
   "firstName": "Pedro",
   "lastName": "Duran",
-  "email": "pedrn@gmail.com",
+  "email": "pedrddossxd@gmail.com",
   "major": "Ingeniería informática",
   "semester": 10,
   "gpa": 4.0,
-  "enrollmentDate": "2019-01-19"
+  "enrollmentDate": "2019-01-19",
+  "phoneNumber": "a04121234567" 
 }
 
 ### 3. Filter by major (GET with Query Params)
@@ -40,5 +41,8 @@ PATCH http://localhost:3000/api/students/1
 Content-Type: application/json
 
 {
-  "gpa": 4
+  "gpa": 3
 }
+
+### 7. Get Statistics (GET)
+GET http://localhost:3000/api/students/statistics

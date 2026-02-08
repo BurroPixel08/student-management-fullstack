@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/BurroPixel08/student-management-api#readme",
   "dependencies": {
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",

@@ -1,26 +1,34 @@
-const Student = require('../models/student-model');
+const { Student, sequelize } = require('../models/student-model');
 const { validateStudent, validatePartialStudent } = require('../utils/validator');
 
 // Create a new student -------------
 const createStudent = async (req, res) => {
-    const result = validateStudent(req.body);
-    
-    if (!result.success) {
-        return res.status(400).json({ error: result.error.errors });
-    }
-
     try {
-        const newStudent = await Student.create(result.data);
-        res.status(201).json(newStudent);
-    } catch (err) {
-        if (err.name === 'SequelizeUniqueConstraintError') {
-            return res.status(409).json({ 
-                message: "Email already registered",
-                error: err.errors[0].message 
+      const result = validateStudent(req.body);
+
+      if (!result.success) {
+            return res.status(400).json({ 
+                message: "Incomplete or invalid data" 
             });
         }
 
-        res.status(500).json({ message: "error creating student", error: err.message });
+      const newStudent = await Student.create(result.data);
+      res.status(201).json(newStudent);
+
+    } catch (err) { 
+        console.error("DEBUG ERROR:", err); 
+
+        if (err.name === 'SequelizeUniqueConstraintError') {
+            return res.status(409).json({ 
+                message: "Email already registered",
+                error: err.errors ? err.errors[0].message : err.message 
+            });
+        }
+
+        return res.status(500).json({ 
+            message: "Error creating student", 
+            error: err.message 
+        });
     }
 };
 
@@ -31,21 +39,32 @@ const getAllStudents = async (req, res) => {
     const { major, semester, is_active } = req.query;
     const queryOptions = {};
 
-    if (major) queryOptions.major = major;
+    if (major) {
+      queryOptions.major = major;
+    }
 
-    if (semester) queryOptions.semester = Number(semester);
+    if (semester) {
+      queryOptions.semester = Number(semester);
+    }
 
     if (is_active !== undefined) {
-      queryOptions.isActive = is_active === 'true';
+      queryOptions.isActive = (is_active === 'true');
+    } else {
+      queryOptions.isActive = true;
     }
 
     const students = await Student.findAll({
-      where: queryOptions
+      where: queryOptions,
+      order: [['last_name', 'ASC']]
     });
 
     res.json(students);
+
   } catch (error) {
-    res.status(500).json({ message: 'Error getting students', error: error.message });
+    res.status(500).json({ 
+      message: 'Error retrieving students', 
+      error: error.message 
+    });
   }
 };
 
@@ -53,11 +72,27 @@ const getAllStudents = async (req, res) => {
 // Get a student by ID -----------------
 const getStudentById = async (req, res) => {
   try {
-    const student = await Student.findByPk(req.params.id);
-    if (!student) return res.status(404).json({ message: 'Student not found' });
+    const { id } = req.params;
+
+    const student = await Student.findOne({
+      where: { 
+        id: id,
+        isActive: true
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ 
+        message: 'Student not found or is currently inactive' 
+      });
+    }
+
     res.json(student);
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    res.status(500).json({ 
+      message: 'Server Error', 
+      error: error.message 
+    });
   }
 };
 
@@ -128,7 +163,7 @@ const deleteStudent = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    await student.destroy();
+    await student.update({ isActive: false });
 
     res.status(200).json({ message: 'Student deleted (soft delete)' });
   } catch (error) {
@@ -136,6 +171,38 @@ const deleteStudent = async (req, res) => {
   }
 }
 
+//Get all general statiscs
+const getStatistics = async (req, res) => {
+    try {
+        // 1. Conteo total
+        const totalStudents = await Student.count({ where: { isActive: true } });
+
+        // 2. Promedio de GPA
+        const gpaData = await Student.findAll({
+            attributes: [[sequelize.fn('AVG', sequelize.col('gpa')), 'avgGpa']],
+            where: { isActive: true }
+        });
+
+        // 3. Agrupado por carrera
+        const majorStats = await Student.findAll({
+            attributes: [
+                'major',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+            ],
+            where: { isActive: true },
+            group: ['major']
+        });
+
+        res.json({
+            totalStudents,
+            averageGpa: parseFloat(gpaData[0].dataValues.avgGpa || 0).toFixed(2),
+            majorDistribution: majorStats
+        });
+    } catch (err) {
+        console.error("Error en estadísticas:", err);
+        res.status(500).json({ message: "Error", error: err.message });
+    }
+};
 
 module.exports = {
     createStudent,
@@ -143,5 +210,6 @@ module.exports = {
     getStudentById, 
     updatePartialStudent,
     updateStudent,
-    deleteStudent
+    deleteStudent,
+    getStatistics
 };
