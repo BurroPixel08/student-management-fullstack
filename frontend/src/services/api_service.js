@@ -22,5 +22,9 @@ export default {
   // Función por si quieres crear un estudiante desde el frontend
   createStudent(data) {
     return apiClient.post('/', data);
+  },
+
+  deleteStudent(id) {
+    return apiClient.delete(`/${id}`); 
   }
 };
