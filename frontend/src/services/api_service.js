@@ -26,5 +26,13 @@ export default {
 
   deleteStudent(id) {
     return apiClient.delete(`/${id}`); 
+  },
+
+  updateStudent(id, data) {
+    return apiClient.put(`/${id}`, data);
+  },
+  
+  updatePartialStudent(id, data) {
+    return apiClient.patch(`/${id}`, data);
   }
 };

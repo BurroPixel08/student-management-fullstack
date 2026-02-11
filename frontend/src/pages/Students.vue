@@ -44,6 +44,60 @@
         No se encontraron registros.
       </div>
     </div>
+    <div v-if="isModalOpen" class="modal-overlay">
+      <div class="modal-content">
+        <h3>{{ isEditing ? 'Editar Estudiante' : 'Nuevo Estudiante' }}</h3>
+        
+        <form @submit.prevent="saveStudent">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input v-model="currentStudent.firstName" type="text" required placeholder="Ej: Juan">
+          </div>
+          
+          <div class="form-group">
+            <label>Apellido</label>
+            <input v-model="currentStudent.lastName" type="text" required placeholder="Ej: Pérez">
+          </div>
+
+          <div class="form-group">
+            <label>Carrera</label>
+            <input v-model="currentStudent.major" type="text" required placeholder="Ej: Ingeniería">
+          </div>
+
+          <div class="form-group">
+            <label>GPA</label>
+            <input v-model="currentStudent.gpa" type="number" step="0.1" min="0" max="5" required>
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input v-model="currentStudent.email" type="email" required placeholder="correo@ejemplo.com">
+          </div>
+
+          <div class="form-group">
+            <label>Semestre</label>
+            <input v-model="currentStudent.semester" type="number" min="1" max="12" required>
+          </div>
+
+          <div class="form-group">
+            <label>Fecha de Inscripción</label>
+            <input v-model="currentStudent.enrollmentDate" type="date" required>
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono (Opcional)</label>
+            <input v-model="currentStudent.phoneNumber" type="text" placeholder="04121234567">
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="closeModal" class="btn-cancel">Cancelar</button>
+            <button type="submit" class="btn-save">
+              {{ isEditing ? 'Actualizar' : 'Guardar Estudiante' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -85,6 +139,39 @@ const filteredStudents = computed(() => {
   );
 });
 
+const isModalOpen = ref(false);
+const isEditing = ref(false);
+const currentStudent = ref({
+  id: null,
+  firstName: '',
+  lastName: '',
+  major: '',
+  gpa: 0,
+  email: '',
+  semester: 1, // Nuevo
+  enrollmentDate: new Date().toISOString().split('T')[0], 
+  phoneNumber: '' 
+});
+
+// Abre el modal para crear nuevo
+const openModal = () => {
+  isEditing.value = false;
+  currentStudent.value = { id: null, firstName: '', lastName: '', major: '', gpa: 0, email: '' };
+  isModalOpen.value = true;
+};
+
+// Abre el modal para editar existente
+const editStudent = (student) => {
+  isEditing.value = true;
+  // Copiamos los datos para no editar la tabla en tiempo real
+  currentStudent.value = { ...student };
+  isModalOpen.value = true;
+};
+
+const closeModal = () => {
+  isModalOpen.value = false;
+};
+
 // Función para eliminar
 const confirmDelete = async (id) => {
   console.log("ID a eliminar:", id); // <--- Mira esto en la consola (F12)
@@ -99,6 +186,48 @@ const confirmDelete = async (id) => {
       console.error("Error al eliminar:", error.response);
       alert("No se pudo eliminar: " + (error.response?.data?.message || "Error de servidor"));
     }
+  }
+};
+
+const saveStudent = async () => {
+  try {
+    // 1. Limpiamos los datos para que coincidan con tu validador del backend
+    // Aseguramos que el GPA sea un número decimal
+    const payload = {
+      firstName: currentStudent.value.firstName,
+      lastName: currentStudent.value.lastName,
+      email: currentStudent.value.email,
+      major: currentStudent.value.major,
+      semester: parseInt(currentStudent.value.semester), 
+      gpa: parseFloat(currentStudent.value.gpa),        
+      enrollmentDate: currentStudent.value.enrollmentDate, 
+      phoneNumber: currentStudent.value.phoneNumber || undefined 
+    };
+
+    if (isEditing.value) {
+      // 2. Si estamos editando, llamamos a updateStudent (el PUT que tienes en el backend)
+      await api.updateStudent(currentStudent.value.id, payload);
+      console.log("Estudiante actualizado correctamente");
+    } else {
+      // 3. Si es nuevo, llamamos a createStudent (el POST que tienes en el backend)
+      await api.createStudent(payload);
+      console.log("Estudiante creado correctamente");
+    }
+
+    // 4. Acciones finales tras el éxito:
+    await loadStudents(); // Recargamos la tabla para ver los cambios
+    closeModal();         // Cerramos el modal
+    alert("Operación exitosa");
+
+  } catch (error) {
+      console.error("DEBUG COMPLETO:", error.response); // Esto es para ti en la consola (F12)
+      
+      // Si el backend nos da detalles (como los errores de Zod)
+      const detalleBackend = error.response?.data?.errors 
+          ? error.response.data.errors.map(e => `${e.path}: ${e.message}`).join(", ")
+          : error.response?.data?.message;
+
+      alert("Atención: " + (detalleBackend || "Error desconocido en el servidor"));
   }
 };
 
@@ -132,4 +261,42 @@ td { padding: 15px; border-top: 1px solid #eee; }
 .btn-delete { color: #ff5252; background: none; border: none; cursor: pointer; font-size: 1.1rem; }
 
 .no-data { padding: 40px; text-align: center; color: #999; }
+
+/* Estilos del Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 450px;
+  color: #333;
+}
+
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-cancel { background: #eee; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+.btn-save { background: #42b883; color: white; border: none; padding: 10px 20px;}
 </style>
