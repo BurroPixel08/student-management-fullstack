@@ -1,219 +1,212 @@
 <template>
   <div class="page-container">
-    <header class="table-header">
+    <div class="table-header">
       <h2>Listado de Estudiantes</h2>
-      <button class="btn-add" @click="openModal">
+      <button @click="openModal" class="btn-add">
         <i class="fa-solid fa-plus"></i> Nuevo Estudiante
       </button>
-    </header>
+    </div>
 
     <div class="search-box">
       <input 
         v-model="searchQuery" 
+        @input="onSearchInput"
         type="text" 
-        placeholder="Buscar por nombre, carrera o email..."
+        placeholder="Buscar por nombre, carrera o email..." 
       />
+    </div>
+    
+    <div class="records-info">
+       Mostrando página <strong>{{ currentPage }}</strong> de <strong>{{ totalPages }}</strong> (Total: {{ totalItems }} registros)
     </div>
 
     <div class="table-wrapper">
-  <table>
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Carrera</th>
-        <th>GPA</th>
-        <th>Email</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr 
-        v-for="student in studentsList" 
-        :key="student.id" 
-        @click="viewStudent(student)"
-        class="clickable-row"
-      >
-        <td>{{ student.firstName }} {{ student.lastName }}</td>
-        <td>{{ student.major }}</td>
-        <td>{{ student.gpa }}</td>
-        <td>{{ student.email }}</td>
-        <td class="actions">
-          <button @click.stop="editStudent(student)" class="btn-edit">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-            <button @click.stop="confirmDelete(student.id)" class="btn-delete">
-               <i class="fa-solid fa-trash"></i>
-            </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-<div class="pagination">
-    <button 
-      :disabled="currentPage === 1" 
-      @click="changePage(currentPage - 1)"
-      class="page-btn"
-    >
-      <i class="fa-solid fa-chevron-left"></i> Previous
-    </button>
-
-    <div class="page-numbers">
-      <span>Page <strong>{{ currentPage }}</strong> of {{ totalPages }}</span>
+      <table v-if="students.length > 0">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Carrera</th>
+            <th>GPA</th>
+            <th>Email</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="student in students" :key="student._id || student.id" class="clickable-row">
+            <td @click="openViewModal(student)">{{ student.firstName }} {{ student.lastName }}</td>
+            <td @click="openViewModal(student)">{{ student.major }}</td>
+            <td @click="openViewModal(student)">
+              <span class="gpa-badge" :class="getGpaColor(student.gpa)">{{ student.gpa }}</span>
+            </td>
+            <td @click="openViewModal(student)">{{ student.email }}</td>
+            <td>
+              <div class="actions">
+                <button @click.stop="openEditModal(student)" class="btn-edit"><i class="fa-solid fa-pen"></i></button>
+                <button @click.stop="confirmDelete(student._id || student.id)" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div v-else class="no-data-message">
+        <p v-if="loading">Cargando datos...</p>
+        <p v-else>No se encontraron resultados.</p>
+      </div>
     </div>
 
-    <button 
-      :disabled="currentPage === totalPages" 
-      @click="changePage(currentPage + 1)"
-      class="page-btn"
-    >
-      Next <i class="fa-solid fa-chevron-right"></i>
-    </button>
-  </div>
-</div>
+    <div class="pagination" v-if="totalPages > 1">
+      <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1" class="page-btn">
+        <i class="fa-solid fa-chevron-left"></i> Anterior
+      </button>
+      
+      <span class="page-numbers">
+        Página <strong>{{ currentPage }}</strong> de {{ totalPages }}
+      </span>
+      
+      <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages" class="page-btn">
+        Siguiente <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
 
-    <div v-if="isModalOpen" class="modal-overlay">
+    <div v-if="showModal" class="modal-overlay">
       <div class="modal-content">
         <h3>{{ isEditing ? 'Editar Estudiante' : 'Nuevo Estudiante' }}</h3>
         
         <form @submit.prevent="saveStudent">
           <div class="form-group">
-            <label>Nombre</label>
-            <input v-model="currentStudent.firstName" type="text" required placeholder="Ej: Juan">
+            <label>Nombres</label>
+            <input v-model="currentStudent.firstName" type="text" :class="{'input-error': errors.firstName}">
+            <span v-if="errors.firstName" class="error-text">{{ errors.firstName }}</span>
           </div>
           
           <div class="form-group">
-            <label>Apellido</label>
-            <input v-model="currentStudent.lastName" type="text" required placeholder="Ej: Pérez">
-          </div>
-
-         <div class="form-group">
-          <label>Carrera</label>
-          <select v-model="currentStudent.major" required class="form-control">
-            <option value="" disabled>Seleccione una carrera...</option>
-            <option v-for="major in majors" :key="major" :value="major">
-              {{ major }}
-            </option>
-          </select>
-        </div>
-
-          <div class="form-group">
-            <label>GPA</label>
-            <input v-model="currentStudent.gpa" type="number" step="0.1" min="0" max="4" required>
+            <label>Apellidos</label>
+            <input v-model="currentStudent.lastName" type="text" :class="{'input-error': errors.lastName}">
+            <span v-if="errors.lastName" class="error-text">{{ errors.lastName }}</span>
           </div>
 
           <div class="form-group">
             <label>Email</label>
-            <input v-model="currentStudent.email" type="email" required placeholder="correo@ejemplo.com">
+            <input v-model="currentStudent.email" type="email" :class="{'input-error': errors.email}">
+            <span v-if="errors.email" class="error-text">{{ errors.email }}</span>
           </div>
 
-          <div class="form-group">
-            <label>Semestre</label>
-            <input v-model="currentStudent.semester" type="number" min="1" max="12" required>
+          <div class="info-grid">
+            <div class="form-group">
+              <label>Carrera</label>
+              <select v-model="currentStudent.major" :class="{'input-error': errors.major}">
+                 <option value="" disabled>Seleccionar...</option>
+                 <option value="Ingeniería Civil">Ingeniería Civil</option>
+                 <option value="Ingeniería Informática">Ingeniería Informática</option>
+                 <option value="Ingeniería Industrial">Ingeniería Industrial</option>
+                 <option value="Medicina">Medicina</option>
+                 <option value="Derecho">Derecho</option>
+                 <option value="Contaduría">Contaduría</option>
+                 <option value="Administración">Administración</option>
+                 <option value="Física">Física</option>
+              </select>
+              <span v-if="errors.major" class="error-text">{{ errors.major }}</span>
+            </div>
+
+            <div class="form-group">
+              <label>Semestre</label>
+              <input v-model="currentStudent.semester" type="number" min="1" max="12" :class="{'input-error': errors.semester}">
+              <span v-if="errors.semester" class="error-text">{{ errors.semester }}</span>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label>Fecha de Inscripción</label>
-            <input v-model="currentStudent.enrollmentDate" type="date" required>
-          </div>
+          <div class="info-grid">
+            <div class="form-group">
+              <label>GPA (0-4)</label>
+              <input v-model="currentStudent.gpa" type="number" step="0.1" min="0" max="4" :class="{'input-error': errors.gpa}">
+               <span v-if="errors.gpa" class="error-text">{{ errors.gpa }}</span>
+            </div>
 
+            <div class="form-group">
+              <label>Fecha de Ingreso</label>
+              <input v-model="currentStudent.enrollmentDate" type="date" :class="{'input-error': errors.enrollmentDate}">
+              <span v-if="errors.enrollmentDate" class="error-text">{{ errors.enrollmentDate }}</span>
+            </div>
+          </div>
+          
           <div class="form-group">
-            <label>Teléfono (Opcional)</label>
-            <input v-model="currentStudent.phoneNumber" type="text" placeholder="04121234567">
+              <label>Teléfono (0414...)</label>
+              <input v-model="currentStudent.phoneNumber" type="text" placeholder="04141234567" :class="{'input-error': errors.phoneNumber}">
+              <span v-if="errors.phoneNumber" class="error-text">{{ errors.phoneNumber }}</span>
           </div>
 
           <div class="modal-actions">
             <button type="button" @click="closeModal" class="btn-cancel">Cancelar</button>
-            <button type="submit" class="btn-save">
-              {{ isEditing ? 'Actualizar' : 'Guardar Estudiante' }}
-            </button>
+            <button type="submit" class="btn-save">Guardar</button>
           </div>
         </form>
       </div>
     </div>
 
-    <div v-if="isViewModalOpen" class="modal-overlay">
+    <div v-if="showViewModal" class="modal-overlay">
       <div class="modal-content view-card">
-        <header class="view-header">
-          <div class="avatar-circle">
-            {{ currentStudent.firstName[0] }}{{ currentStudent.lastName[0] }}
-          </div>
-          <h3>Detalles del Estudiante</h3>
-        </header>
+        <div class="view-header">
+           <div class="avatar-circle">
+             {{ getInitials(selectedStudent?.firstName, selectedStudent?.lastName) }}
+           </div>
+           <h3>{{ selectedStudent?.firstName }} {{ selectedStudent?.lastName }}</h3>
+           <p style="color: #666; margin: 0;">{{ selectedStudent?.major }}</p>
+        </div>
 
-        <div class="view-body">
-          <div class="info-row">
-            <label>Nombre Completo:</label>
-            <span>{{ currentStudent.firstName }} {{ currentStudent.lastName }}</span>
+        <div class="view-body" v-if="selectedStudent">
+          <div class="info-grid">
+             <div class="info-row">
+               <label>Email</label>
+               <span>{{ selectedStudent.email }}</span>
+             </div>
+             <div class="info-row">
+               <label>Teléfono</label>
+               <span>{{ selectedStudent.phoneNumber || 'N/A' }}</span>
+             </div>
           </div>
-          <div class="info-row">
-            <label>Correo Electrónico:</label>
-            <span>{{ currentStudent.email }}</span>
-          </div>
-          <div class="info-row">
-            <label>Carrera:</label>
-            <span>{{ currentStudent.major }}</span>
-          </div>
+          
           <div class="info-grid">
             <div class="info-row">
-              <label>Semestre:</label>
-              <span>{{ currentStudent.semester }}°</span>
+              <label>Semestre</label>
+              <span>{{ selectedStudent.semester }}°</span>
             </div>
-            <div class="info-row">
-              <label>GPA:</label>
-              <span class="gpa-badge">{{ currentStudent.gpa }}</span>
-            </div>
+             <div class="info-row">
+               <label>GPA</label>
+               <span class="gpa-badge" :class="getGpaColor(selectedStudent.gpa)">{{ selectedStudent.gpa }}</span>
+             </div>
           </div>
+
           <div class="info-row">
-            <label>Teléfono:</label>
-            <span>{{ currentStudent.phoneNumber || 'No registrado' }}</span>
-          </div>
-          <div class="info-row">
-            <label>Fecha de Ingreso:</label>
-            <span>{{ currentStudent.enrollmentDate }}</span>
+             <label>Fecha de Ingreso</label>
+             <span>{{ selectedStudent.enrollmentDate }}</span>
           </div>
         </div>
 
-        <footer class="modal-actions">
-          <button @click="isViewModalOpen = false" class="btn-cancel">Cerrar</button>
-          <button @click="goToEditFromView" class="btn-edit-main">
-            <i class="fa-solid fa-pen"></i> Editar Información
+        <div class="modal-actions" style="justify-content: center; margin-top: 30px;">
+          <button @click="closeViewModal" class="btn-cancel">Cerrar</button>
+          <button @click="openEditFromView" class="btn-edit-main">
+            <i class="fa-solid fa-pen"></i> Editar
           </button>
-        </footer>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import api from '../services/api_service';
-import Swal from 'sweetalert2'; // <--- POP UPS
+import { ref, onMounted } from 'vue';
+import api from '../services/api_service'; 
+import Swal from 'sweetalert2'; 
 
+// --- CONFIGURACIÓN ---
+const itemsPerPage = 5; // Debe ser igual o menor a lo que envíe el backend por página
 
-const students = ref([]);
-const studentsList = ref([]); // Lista real que viene del server
-const searchQuery = ref("");
-const currentPage = ref(1);
-const totalPages = ref(1); // gusbworks 1.2: Variables de estado para la paginación - total de paginas
-const itemsPerPage = 5;
-const majors = [
-  "Ingeniería Informática",
-  "Ingeniería Civil",
-  "Ingeniería Industrial",
-  "Administración de Empresas",
-  "Contaduría Pública",
-  "Derecho",
-  "Psicología",
-  "Comunicación Social"
-];
-
-// gusbworks 3.1: SweetAlert Toast Configuration
 const Toast = Swal.mixin({
   toast: true,
-  position: 'top-end', // Sale en la esquina superior derecha
+  position: 'top-end',
   showConfirmButton: false,
-  timer: 3000, // Dura 3 segundos
+  timer: 3000,
   timerProgressBar: true,
   didOpen: (toast) => {
     toast.addEventListener('mouseenter', Swal.stopTimer)
@@ -221,162 +214,116 @@ const Toast = Swal.mixin({
   }
 });
 
-// GUSBWORKS 1.0 - ADICIÓN DE LA FUNCION AUXILIAR Y MODIFICACIÓN DE LA FUNCION LOAD Students 
-
-// gusbworks 1.7: Corrección de formato de fecha al cargar desde la DB
-const mapBackendToFrontend = (data) => {
-  // Extraemos la fecha raw y la cortamos por la 'T' para obtener solo YYYY-MM-DD
-  const rawDate = data.enrollment_date || data.enrollmentDate || '';
-  const formattedDate = rawDate.split('T')[0];
-
-  return {
-    id: data.id,
-    firstName: data.first_name || data.firstName,
-    lastName: data.last_name || data.lastName,
-    email: data.email,
-    major: data.major,
-    semester: data.semester,
-    gpa: data.gpa,
-    enrollmentDate: formattedDate, // ¡Fecha limpia para el formulario HTML!
-    phoneNumber: data.phone_number || data.phoneNumber
-  };
-};
-
-// gusbworks 2.0: Updated to send search query to API
-const loadStudents = async () => {
-  try {
-    // Creamos el objeto filters con lo que haya en la caja de búsqueda
-    const filters = { search: searchQuery.value }; 
-    
-    // Lo enviamos como tercer parámetro a nuestro api_service
-    const response = await api.getStudents(currentPage.value, itemsPerPage, filters);
-    
-    if (response.data.data) {
-      studentsList.value = response.data.data.map(mapBackendToFrontend);
-      totalPages.value = response.data.totalPages;
-      currentPage.value = response.data.currentPage;
-    } else {
-      studentsList.value = response.data.map(mapBackendToFrontend);
-    }
-  } catch (error) {
-    console.error("Error loading students:", error);
-  }
-};
-
-// gusbworks 2.0: Debounce search to prevent API spam
-let searchTimeout;
-watch(searchQuery, () => {
-  clearTimeout(searchTimeout);
-  
-  searchTimeout = setTimeout(() => {
-    currentPage.value = 1; // Volvemos a la página 1 al buscar
-    loadStudents();        // Llamamos al backend con la nueva palabra
-  }, 300);
-});
-
-// gusbworks 1.2: New page change handler
-const changePage = (page) => {
-  if (page > 0 && page <= totalPages.value) {
-    currentPage.value = page;
-    loadStudents();
-  }
-};
-
-// Filtro en tiempo real (Frontend)
-const filteredStudents = computed(() => {
-  if (!searchQuery.value) return students.value;
-  
-  const query = searchQuery.value.toLowerCase();
-  return students.value.filter(s => 
-    s.firstName.toLowerCase().includes(query) ||
-    s.lastName.toLowerCase().includes(query) ||
-    s.email.toLowerCase().includes(query) ||
-    s.major.toLowerCase().includes(query)
-  );
-});
-
-
-// gusb 1.2 removido el calculo de paginas
-
-// 4. RESET: Si el usuario busca, lo regresamos a la página 1
-// Reset to page 1 on search
-watch(searchQuery, () => {
-  currentPage.value = 1;
-  // Note: Add logic here if backend search is implemented
-});
-
-const isModalOpen = ref(false);
+// --- ESTADOS ---
+const students = ref([]);
+const loading = ref(true);
+const showModal = ref(false);
+const showViewModal = ref(false);
 const isEditing = ref(false);
+const searchQuery = ref("");
+const selectedStudent = ref(null);
+const errors = ref({}); 
+
+// --- ESTADOS DE PAGINACIÓN REAL (DEL SERVIDOR) ---
+const currentPage = ref(1);
+const totalPages = ref(1);
+const totalItems = ref(0);
+
 const currentStudent = ref({
   id: null,
   firstName: '',
   lastName: '',
-  major: '',
-  gpa: 0,
   email: '',
-  semester: 1, // Nuevo
-  enrollmentDate: new Date().toISOString().split('T')[0], 
-  phoneNumber: '' 
+  major: '',
+  semester: 1,
+  gpa: 0.0,
+  enrollmentDate: '',
+  phoneNumber: ''
 });
 
-// Abre el modal para crear nuevo
-const openModal = () => {
-  isEditing.value = false;
-  currentStudent.value = { id: null, firstName: '', lastName: '', major: '', gpa: 0, email: '', semester: 1 };
-  isModalOpen.value = true;
-};
-
-// Abre el modal para editar existente
-const editStudent = (student) => {
-  isEditing.value = true;
-  // Copiamos los datos para no editar la tabla en tiempo real
-  currentStudent.value = { ...student };
-  isModalOpen.value = true;
-};
-
-const closeModal = () => { isModalOpen.value = false; };
-
-// Función para eliminar
-const confirmDelete = async (id) => {
-  // gusbworks 3.1: SweetAlert Confirmation Dialog
-  Swal.fire({
-    title: '¿Estás seguro?',
-    text: "No podrás revertir esta acción",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#42b883', // Usamos tu verde
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar',
-    background: '#fff',
-    color: '#333'
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        await api.deleteStudent(id);
-        
-        await loadStudents();
-        
-        // Mensaje de éxito tras borrar
-        Toast.fire({
-          icon: 'success',
-          title: 'Estudiante eliminado'
-        });
-        
-      } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo eliminar el estudiante'
-        });
-      }
+// --- CARGA DE DATOS (SERVER-SIDE) ---
+// Ahora recibimos la página como argumento
+const loadStudents = async (page = 1) => {
+  loading.value = true;
+  try {
+    // LLAMADA CLAVE: Enviamos page, limit y la búsqueda al backend
+    // 'search' es el nombre del parámetro que tu backend espera para filtrar
+    const filters = { search: searchQuery.value }; 
+    const response = await api.getStudents(page, itemsPerPage, filters);
+    
+    // El backend devuelve: { totalItems, totalPages, currentPage, data }
+    const resData = response.data;
+    
+    if (resData.data && Array.isArray(resData.data)) {
+      // Estructura correcta del backend paginado
+      students.value = resData.data;
+      totalPages.value = resData.totalPages;
+      currentPage.value = parseInt(resData.currentPage); // Aseguramos que sea número
+      totalItems.value = resData.totalItems;
+    } else if (Array.isArray(resData)) {
+      // Fallback por si la respuesta fuera plana (no debería pasar con tu backend actual)
+      students.value = resData;
+      totalPages.value = 1;
+      totalItems.value = resData.length;
+    } else {
+      students.value = [];
     }
-  });
+
+  } catch (error) {
+    console.error("Error cargando estudiantes:", error);
+    Swal.fire({icon: 'error', title: 'Error', text: 'No se pudo conectar al servidor'});
+  } finally {
+    loading.value = false;
+  }
 };
 
+// Cargar la primera página al iniciar
+onMounted(() => loadStudents(1));
 
-// Función para guardar o actualizar
+// --- CAMBIO DE PÁGINA ---
+const changePage = (newPage) => {
+  if (newPage >= 1 && newPage <= totalPages.value) {
+    loadStudents(newPage); // Pedimos la nueva página al servidor
+  }
+};
+
+// --- BÚSQUEDA CON RETRASO (DEBOUNCE) ---
+let searchTimeout;
+const onSearchInput = () => {
+  // Esperamos 500ms después de que dejes de escribir para no saturar al servidor
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    loadStudents(1); // Al buscar, siempre volvemos a la página 1
+  }, 500);
+};
+
+// --- VALIDACIONES ---
+const validateForm = () => {
+  errors.value = {};
+  let isValid = true;
+  if (!currentStudent.value.firstName) { errors.value.firstName = "Nombre obligatorio"; isValid = false; }
+  else if (currentStudent.value.firstName.length < 2) { errors.value.firstName = "Mínimo 2 letras"; isValid = false; }
+  if (!currentStudent.value.lastName) { errors.value.lastName = "Apellido obligatorio"; isValid = false; }
+  if (!currentStudent.value.email) { errors.value.email = "Email obligatorio"; isValid = false; }
+  else if (!/.+@.+\..+/.test(currentStudent.value.email)) { errors.value.email = "Email inválido"; isValid = false; }
+  if (!currentStudent.value.major) { errors.value.major = "Selecciona carrera"; isValid = false; }
+  if (!currentStudent.value.enrollmentDate) { errors.value.enrollmentDate = "Fecha requerida"; isValid = false; }
+  if (currentStudent.value.gpa < 0 || currentStudent.value.gpa > 4) { errors.value.gpa = "GPA debe ser 0-4"; isValid = false; }
+  if (currentStudent.value.phoneNumber) {
+    const phoneRegex = /^(0412|0414|0424|0416|0426)\d{7}$/;
+    if (!phoneRegex.test(currentStudent.value.phoneNumber)) {
+      errors.value.phoneNumber = "Formato inválido (Ej: 04141234567)"; isValid = false;
+    }
+  }
+  return isValid;
+};
+
+// Guardar
 const saveStudent = async () => {
+  if (!validateForm()) {
+    Toast.fire({ icon: 'warning', title: 'Revisa los errores en rojo' });
+    return; 
+  }
   try {
     const payload = {
       firstName: currentStudent.value.firstName,
@@ -388,61 +335,62 @@ const saveStudent = async () => {
       enrollmentDate: currentStudent.value.enrollmentDate,
       phoneNumber: currentStudent.value.phoneNumber || "" 
     };
-
-    if (isEditing.value) {
-      await api.updateStudent(currentStudent.value.id, payload);
+    
+    // Usamos _id o id
+    const idToUpdate = currentStudent.value._id || currentStudent.value.id;
+    
+    if (isEditing.value && idToUpdate) {
+      await api.updateStudent(idToUpdate, payload);
     } else {
       await api.createStudent(payload);
     }
 
-    await loadStudents();
+    // Recargamos la página actual para ver los cambios
+    await loadStudents(currentPage.value);
     closeModal();
-    
-    // gusbworks 3.1: Beautiful Success Message
-    Toast.fire({
-      icon: 'success',
-      title: isEditing.value ? 'Estudiante actualizado' : 'Estudiante creado exitosamente'
-    });
-
+    Toast.fire({ icon: 'success', title: isEditing.value ? 'Actualizado' : 'Creado' });
   } catch (error) {
-      console.error("DEBUG:", error.response?.data);
-      let detalleBackend = error.response?.data?.message || "Error de servidor";
-      
-      if (error.response?.data?.errors) {
-        // Detector de errores mejorado (atrapa singular y plural)
-          detalleBackend = error.response.data.errors.map(e => `${e.path}: ${e.message}`).join(", ");
-      } else if (error.response?.data?.error) {
-        // Si el backend manda "error" en lugar de "errors" else if
-          detalleBackend = JSON.stringify(error.response.data.error);
-      }
-      
-      // gusbworks 3.1: Beautiful Error Message
-      Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: detalleBackend,
-      });
+      console.error("Error al guardar:", error);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error guardando datos' });
   }
 };
 
-
-const isViewModalOpen = ref(false);
-
-const viewStudent = (student) => {
-  // Cargamos los datos en currentStudent para mostrarlos
-  currentStudent.value = { ...student };
-  isViewModalOpen.value = true;
+// Eliminar
+const confirmDelete = async (id) => {
+  Swal.fire({
+    title: '¿Estás seguro?', text: "Esta acción no se puede deshacer", icon: 'warning',
+    showCancelButton: true, confirmButtonColor: '#42b883', cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        await api.deleteStudent(id);
+        // Recargamos la página actual
+        await loadStudents(currentPage.value);
+        Toast.fire({ icon: 'success', title: 'Eliminado correctamente' });
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar' });
+      }
+    }
+  });
 };
 
-const goToEditFromView = () => {
-  isViewModalOpen.value = false;
-  isEditing.value = true; // Cambiamos a modo edición
-  isModalOpen.value = true; // Abrimos el modal que ya tenías
-};
-
-
-
-
-onMounted(loadStudents);
+// Modals y Helpers
+const openModal = () => { isEditing.value = false; currentStudent.value = { semester: 1, gpa: 0.0 }; errors.value = {}; showModal.value = true; };
+const openEditModal = (student) => { isEditing.value = true; currentStudent.value = { ...student }; errors.value = {}; showModal.value = true; };
+const closeModal = () => showModal.value = false;
+const openViewModal = (student) => { selectedStudent.value = student; showViewModal.value = true; };
+const closeViewModal = () => { showViewModal.value = false; selectedStudent.value = null; };
+const openEditFromView = () => { if (selectedStudent.value) { const studentToEdit = { ...selectedStudent.value }; closeViewModal(); openEditModal(studentToEdit); } };
+const getInitials = (name, lastname) => { if (!name || !lastname) return "??"; return (name[0] + lastname[0]).toUpperCase(); };
+const getGpaColor = (gpa) => { if (gpa >= 3.5) return 'text-success'; if (gpa < 2.0) return 'text-danger'; return ''; };
 </script>
 
+<style scoped>
+.records-info { margin-bottom: 10px; color: #666; font-size: 0.85rem; margin-left: 5px; }
+.no-data-message { padding: 40px; text-align: center; color: #888; font-size: 1.1rem; }
+.input-error { border-color: #ff5252 !important; background-color: #fffafa; }
+.error-text { color: #ff5252; font-size: 0.8rem; margin-top: 4px; display: block; }
+.text-success { color: #2ecc71 !important; }
+.text-danger { color: #e74c3c !important; }
+</style>
