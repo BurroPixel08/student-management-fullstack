@@ -54,12 +54,13 @@ const getAllStudents = async (req, res) => {
       queryOptions.isActive = true; 
     }
 
-    // gusbworks 2.0: Server-side search logic (Name, LastName, or Email)
+// gusbworks 2.2: Server-side search extended (Name, Last Name, Email, and Major)
     if (search) {
       queryOptions[Op.or] = [
         { first_name: { [Op.like]: `%${search}%` } },
         { last_name: { [Op.like]: `%${search}%` } },
-        { email: { [Op.like]: `%${search}%` } }
+        { email: { [Op.like]: `%${search}%` } },
+        { major: { [Op.like]: `%${search}%` } } // Added major to the search scope
       ];
     }
 
