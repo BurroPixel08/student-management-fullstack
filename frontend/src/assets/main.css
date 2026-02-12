@@ -1,252 +1,119 @@
-/* frontend/src/assets/main.css */
+/* IMPORTANTE: Copia todo esto en src/assets/main.css */
 
-/* 1. Importar la fuente Poppins */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-/* 2. Aplicar fuente al cuerpo (body) en lugar de usar * */
-/* Esto arregla el problema de los iconos desaparecidos */
 body {
   font-family: 'Poppins', sans-serif;
-  background-color: #121212; /* Fondo oscuro global si lo deseas */
+  background-color: #121212;
   color: #e0e0e0;
   margin: 0;
 }
 
-/* Aseguramos que los inputs y botones hereden la fuente bonita */
-input, button, select, textarea {
-  font-family: 'Poppins', sans-serif;
-}
+input, button, select, textarea { font-family: 'Poppins', sans-serif; }
 
-/* --- ESTILOS REUTILIZABLES PARA TODAS LAS PÁGINAS --- */
+/* Contenedores */
+.page-container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+.table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.table-header h2 { color: #f0f0f0; margin: 0; }
 
-/* Contenedor Principal */
-.page-container { 
-  padding: 20px; 
-  max-width: 1200px;
-  margin: 0 auto; 
-}
-
-/* Encabezados de Tablas */
-.table-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center;
-  margin-bottom: 20px; 
-}
-
-.table-header h2 { color: #f0f0f0; }
-
-/* Botón Verde Principal */
-.btn-add { 
-  background: #42b883; 
-  color: white; 
-  border: none; 
-  padding: 10px 20px; 
-  border-radius: 8px; 
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.3s ease;
-  display: flex; align-items: center; gap: 8px; /* Para iconos dentro del botón */
-}
+/* Botones y Inputs */
+.btn-add { background: #42b883; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px; }
 .btn-add:hover { background: #33a06f; }
 
-/* Buscador */
-.search-box input {
-  width: 100%;
-  padding: 12px 15px;
-  background: #2a2a2a;
-  border: 1px solid #444;
-  border-radius: 8px;
-  color: white;
-  margin-bottom: 20px;
-  font-size: 0.95rem;
-  transition: border-color 0.3s ease;
-}
+.search-box input { width: 100%; padding: 12px 15px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 20px; font-size: 0.95rem; box-sizing: border-box; }
 .search-box input:focus { outline: none; border-color: #42b883; }
 
-/* TABLAS MODERNAS (Responsive) */
-.table-wrapper { 
-  background: white; 
-  border-radius: 12px; 
-  overflow-x: auto; 
-  color: #333; 
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-}
-
-table { 
-  width: 100%; 
-  border-collapse: collapse; 
-  min-width: 700px; 
-}
-
-th { 
-  background: #f8f9fa;
-  padding: 15px; 
-  text-align: left; 
-  color: #555; 
-  font-size: 0.85rem; 
-  text-transform: uppercase; 
-  letter-spacing: 0.5px;
-  font-weight: 600;
-}
-
-td { 
-  padding: 15px; 
-  border-top: 1px solid #eee;
-  vertical-align: middle;
-}
-
-/* Filas interactivas */
+/* Tabla Escritorio */
+.table-wrapper { background: white; border-radius: 12px; overflow-x: auto; color: #333; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+table { width: 100%; border-collapse: collapse; min-width: 700px; }
+th { background: #f8f9fa; padding: 15px; text-align: left; color: #555; font-size: 0.85rem; text-transform: uppercase; font-weight: 600; }
+td { padding: 15px; border-top: 1px solid #eee; vertical-align: middle; }
 .clickable-row { cursor: pointer; transition: background 0.1s; }
 .clickable-row:hover { background-color: #f0f7f4; }
 
-/* Botones de Acción (Iconos) */
-.actions { display: flex; gap: 15px; }
-.btn-edit { color: #8480f1; background: none; border: none; cursor: pointer; font-size: 1.1rem; transition: transform 0.2s; padding: 5px;}
-.btn-delete { color: #ff5252; background: none; border: none; cursor: pointer; font-size: 1.1rem; transition: transform 0.2s; padding: 5px;}
+/* Acciones */
+.actions { display: flex; gap: 10px; }
+.btn-edit, .btn-delete { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 5px; transition: transform 0.2s; }
+.btn-edit { color: #8480f1; }
+.btn-delete { color: #ff5252; }
 .btn-edit:hover, .btn-delete:hover { transform: scale(1.2); }
 
-/* --- MODALES --- */
-.modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(3px);
-  display: flex; justify-content: center; align-items: center;
-  z-index: 1000; padding: 20px;
-}
-
-.modal-content {
-  background: white;
-  padding: 30px;
-  border-radius: 12px;
-  width: 100%; max-width: 500px;
-  max-height: 90vh; overflow-y: auto;
-  color: #333;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-
+/* Modals */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; box-sizing: border-box;}
+.modal-content { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
 .form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; font-size: 0.9rem;}
-.form-group input, .form-group select {
-  width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
-}
-.form-group input:focus, .form-group select:focus { outline: none; border-color: #42b883; }
-
+.form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; font-size: 0.9rem; }
+.form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
-.btn-cancel { background: #f1f1f1; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; color: #333;}
-.btn-save { background: #42b883; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer;}
+.btn-cancel { background: #f1f1f1; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; color: #333; }
+.btn-save { background: #42b883; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; }
 
-/* --- PAGINACIÓN --- */
-.pagination {
-  display: flex; justify-content: center; align-items: center; gap: 1.5rem;
-  margin-top: 2rem; padding: 1rem; background: #1e1e1e; border-radius: 12px; border: 1px solid #333;
-}
-.page-btn {
-  background-color: #2a2a2a; color: #ffffff; border: 1px solid #444; padding: 0.6rem 1.2rem;
-  border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer;
-  display: flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease;
-}
-.page-btn:hover:not(:disabled) { background-color: #42b883; border-color: #42b883; color: #121212; transform: translateY(-2px); }
+/* View Card Styles */
+.view-card { border-top: 5px solid #42b883; }
+.view-header { text-align: center; margin-bottom: 25px; }
+.avatar-circle { width: 70px; height: 70px; background: #42b883; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 600; margin: 0 auto 15px; }
+.view-body { display: flex; flex-direction: column; gap: 15px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.info-row { display: flex; flex-direction: column; border-bottom: 1px solid #f5f5f5; padding-bottom: 8px; }
+.info-row label { font-size: 0.75rem; color: #888; font-weight: 700; text-transform: uppercase; }
+.info-row span { font-size: 1.05rem; color: #2c3e50; font-weight: 500; }
+.gpa-badge { color: #42b883 !important; font-weight: 700; font-size: 1.4rem !important; }
+.btn-edit-main { background: #8480f1; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; margin: 0 auto; }
+
+/* Paginación */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 2rem; padding: 1rem; background: #1e1e1e; border-radius: 12px; border: 1px solid #333; flex-wrap: wrap; }
+.page-btn { background-color: #2a2a2a; color: #ffffff; border: 1px solid #444; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease; }
+.page-btn:hover:not(:disabled) { background-color: #42b883; border-color: #42b883; color: #121212; }
 .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-numbers { color: #aaa; font-size: 0.95rem; }
-.page-numbers strong { color: #42b883; font-size: 1.1rem; padding: 0 4px; }
+.page-numbers { color: #aaa; }
+.page-numbers strong { color: #42b883; }
 
-/* RESPONSIVE */
+/* --- DISEÑO RESPONSIVE: TABLA CLÁSICA CON SCROLL --- */
 @media (max-width: 768px) {
-  .table-header { flex-direction: column; gap: 15px; }
-  .btn-add { width: 100%; justify-content: center; }
-  .pagination { flex-direction: column; gap: 1rem; }
-  .page-numbers { order: -1; }
-}
+  
+  /* 1. Restauramos el comportamiento natural de la tabla */
+  table { display: table !important; }
+  thead { display: table-header-group !important; }
+  tbody { display: table-row-group !important; }
+  tr { display: table-row !important; }
+  th, td { display: table-cell !important; }
 
-/* --- ESTILOS DE LA TARJETA DE DETALLES (VIEW MODAL) --- */
+  /* 2. Forzamos el scroll horizontal para que no se amontone nada */
+  .table-wrapper {
+    overflow-x: auto !important; /* Permite deslizar a los lados */
+    display: block;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+  }
 
-/* Borde verde superior elegante */
-.view-card {
-  border-top: 5px solid #42b883;
-}
+  /* Le damos un ancho mínimo a la tabla para que obligue al scroll */
+  table {
+    min-width: 750px; 
+    background-color: white;
+  }
 
-/* Encabezado con Avatar */
-.view-header {
-  text-align: center;
-  margin-bottom: 25px;
-}
+  /* 3. Ajustamos el color del texto para que sea visible (Negro sobre Blanco) */
+  td, th {
+    color: #333 !important;
+    padding: 12px 8px !important;
+    white-space: nowrap; /* Evita que los nombres se corten en dos líneas */
+  }
 
-/* El círculo con las iniciales */
-.avatar-circle {
-  width: 70px;
-  height: 70px;
-  background: #42b883;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin: 0 auto 15px;
-  box-shadow: 0 4px 10px rgba(66, 184, 131, 0.3);
-}
-
-/* Cuerpo de la información */
-.view-body {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-/* Grid para poner GPA y Semestre lado a lado */
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-/* Filas de información */
-.info-row {
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid #f5f5f5;
-  padding-bottom: 8px;
-}
-
-.info-row label {
-  font-size: 0.75rem;
-  color: #888;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.info-row span {
-  font-size: 1.05rem;
-  color: #2c3e50;
-  font-weight: 500;
-}
-
-/* El número del GPA en verde */
-.gpa-badge {
-  color: #42b883 !important;
-  font-weight: 700;
-  font-size: 1.4rem !important;
-}
-
-/* Botón morado de "Editar Información" */
-.btn-edit-main {
-  background: #8480f1;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  transition: background 0.3s;
-}
-
-.btn-edit-main:hover {
-  background: #6c63ff;
+  /* 4. Ajustes de la cabecera de la página */
+  .table-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .btn-add {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .search-box input {
+    margin-bottom: 10px;
+  }
 }
