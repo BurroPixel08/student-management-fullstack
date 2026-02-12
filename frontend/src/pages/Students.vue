@@ -16,109 +16,116 @@
     </div>
 
     <div class="table-wrapper">
-  <table>
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Carrera</th>
-        <th>GPA</th>
-        <th>Email</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr 
-        v-for="student in paginatedStudents" 
-        :key="student.id" 
-        @click="viewStudent(student)"
-        class="clickable-row"
-      >
-        <td>{{ student.firstName }} {{ student.lastName }}</td>
-        <td>{{ student.major }}</td>
-        <td>{{ student.gpa }}</td>
-        <td>{{ student.email }}</td>
-        <td class="actions">
-          <button @click.stop="editStudent(student)" class="btn-edit">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-          <button @click.stop="deleteStudent(student.id)" class="btn-delete">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Carrera</th>
+            <th>GPA</th>
+            <th>Email</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr 
+            v-for="student in paginatedStudents" 
+            :key="student.id" 
+            @click="viewStudent(student)"
+            class="clickable-row"
+          >
+            <td>{{ student.firstName }} {{ student.lastName }}</td>
+            <td>{{ student.major }}</td>
+            <td>{{ student.gpa }}</td>
+            <td>{{ student.email }}</td>
+            <td class="actions">
+              <button @click.stop="editStudent(student)" class="btn-edit">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button @click.stop="confirmDelete(student.id)" class="btn-delete">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-  <div class="pagination" v-if="filteredStudents.length > 0">
-    <button 
-      :disabled="currentPage === 1" 
-      @click="currentPage--"
-      class="page-btn"
-    >
-      <i class="fa-solid fa-chevron-left"></i> Anterior
-    </button>
-
-    <div class="page-numbers">
-      <span>Página <strong>{{ currentPage }}</strong> de {{ totalPages }}</span>
+      <div class="pagination" v-if="filteredStudents.length > 0">
+        <button :disabled="currentPage === 1" @click="currentPage--" class="page-btn">
+          <i class="fa-solid fa-chevron-left"></i> Anterior
+        </button>
+        <div class="page-numbers">
+          <span>Página <strong>{{ currentPage }}</strong> de {{ totalPages }}</span>
+        </div>
+        <button :disabled="currentPage === totalPages" @click="currentPage++" class="page-btn">
+          Siguiente <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
     </div>
 
-    <button 
-      :disabled="currentPage === totalPages" 
-      @click="currentPage++"
-      class="page-btn"
-    >
-      Siguiente <i class="fa-solid fa-chevron-right"></i>
-    </button>
-  </div>
-</div>
     <div v-if="isModalOpen" class="modal-overlay">
       <div class="modal-content">
         <h3>{{ isEditing ? 'Editar Estudiante' : 'Nuevo Estudiante' }}</h3>
         
-        <form @submit.prevent="saveStudent">
+        <form @submit="saveStudent">
           <div class="form-group">
             <label>Nombre</label>
-            <input v-model="currentStudent.firstName" type="text" required placeholder="Ej: Juan">
+            <input v-model="firstName" type="text" placeholder="Ej: Juan" :class="{'input-error': errors.firstName}">
+            <span class="error-text">{{ errors.firstName }}</span>
           </div>
           
           <div class="form-group">
             <label>Apellido</label>
-            <input v-model="currentStudent.lastName" type="text" required placeholder="Ej: Pérez">
+            <input v-model="lastName" type="text" placeholder="Ej: Pérez" :class="{'input-error': errors.lastName}">
+            <span class="error-text">{{ errors.lastName }}</span>
           </div>
 
-         <div class="form-group">
-          <label>Carrera</label>
-          <select v-model="currentStudent.major" required class="form-control">
-            <option value="" disabled>Seleccione una carrera...</option>
-            <option v-for="major in majors" :key="major" :value="major">
-              {{ major }}
-            </option>
-          </select>
-        </div>
-
           <div class="form-group">
-            <label>GPA</label>
-            <input v-model="currentStudent.gpa" type="number" step="0.1" min="0" max="5" required>
+            <label>Carrera</label>
+            <select v-model="major" class="form-control" :class="{'input-error': errors.major}">
+              <option value="" disabled>Seleccione una carrera...</option>
+              <option v-for="m in majors" :key="m" :value="m">{{ m }}</option>
+            </select>
+            <span class="error-text">{{ errors.major }}</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>GPA</label>
+              <input v-model="gpa" type="number" step="0.1" :class="{'input-error': errors.gpa}">
+              <span class="error-text">{{ errors.gpa }}</span>
+            </div>
+
+            <div class="form-group">
+              <label>Semestre</label>
+              <input v-model="semester" type="number" :class="{'input-error': errors.semester}">
+              <span class="error-text">{{ errors.semester }}</span>
+            </div>
           </div>
 
           <div class="form-group">
             <label>Email</label>
-            <input v-model="currentStudent.email" type="email" required placeholder="correo@ejemplo.com">
-          </div>
-
-          <div class="form-group">
-            <label>Semestre</label>
-            <input v-model="currentStudent.semester" type="number" min="1" max="12" required>
+            <input v-model="email" type="email" placeholder="correo@ejemplo.com" :class="{'input-error': errors.email}">
+            <span class="error-text">{{ errors.email }}</span>
           </div>
 
           <div class="form-group">
             <label>Fecha de Inscripción</label>
-            <input v-model="currentStudent.enrollmentDate" type="date" required>
+            <input v-model="enrollmentDate" type="date" :class="{'input-error': errors.enrollmentDate}">
+            <span class="error-text">{{ errors.enrollmentDate }}</span>
           </div>
 
           <div class="form-group">
-            <label>Teléfono (Opcional)</label>
-            <input v-model="currentStudent.phoneNumber" type="text" placeholder="04121234567">
+            <label>Teléfono (Venezuela)</label>
+            <input 
+              v-model="phoneNumber" 
+              type="text" 
+              placeholder="Ej: 04121234567" 
+              maxlength="11"
+              :class="{'input-error': errors.phoneNumber}"
+            >
+            <span class="error-text" v-if="errors.phoneNumber">
+              <i class="fa-solid fa-circle-exclamation"></i> {{ errors.phoneNumber }}
+            </span>
           </div>
 
           <div class="modal-actions">
@@ -133,51 +140,28 @@
 
     <div v-if="isViewModalOpen" class="modal-overlay">
       <div class="modal-content view-card">
-        <header class="view-header">
+        <header class="view-header" v-if="selectedStudentForView">
           <div class="avatar-circle">
-            {{ currentStudent.firstName[0] }}{{ currentStudent.lastName[0] }}
+            {{ selectedStudentForView.firstName[0] }}{{ selectedStudentForView.lastName[0] }}
           </div>
           <h3>Detalles del Estudiante</h3>
         </header>
 
-        <div class="view-body">
-          <div class="info-row">
-            <label>Nombre Completo:</label>
-            <span>{{ currentStudent.firstName }} {{ currentStudent.lastName }}</span>
-          </div>
-          <div class="info-row">
-            <label>Correo Electrónico:</label>
-            <span>{{ currentStudent.email }}</span>
-          </div>
-          <div class="info-row">
-            <label>Carrera:</label>
-            <span>{{ currentStudent.major }}</span>
-          </div>
+        <div class="view-body" v-if="selectedStudentForView">
+          <div class="info-row"><label>Nombre:</label> <span>{{ selectedStudentForView.firstName }} {{ selectedStudentForView.lastName }}</span></div>
+          <div class="info-row"><label>Email:</label> <span>{{ selectedStudentForView.email }}</span></div>
+          <div class="info-row"><label>Carrera:</label> <span>{{ selectedStudentForView.major }}</span></div>
           <div class="info-grid">
-            <div class="info-row">
-              <label>Semestre:</label>
-              <span>{{ currentStudent.semester }}°</span>
-            </div>
-            <div class="info-row">
-              <label>GPA:</label>
-              <span class="gpa-badge">{{ currentStudent.gpa }}</span>
-            </div>
+            <div class="info-row"><label>Semestre:</label> <span>{{ selectedStudentForView.semester }}°</span></div>
+            <div class="info-row"><label>GPA:</label> <span class="gpa-badge">{{ selectedStudentForView.gpa }}</span></div>
           </div>
-          <div class="info-row">
-            <label>Teléfono:</label>
-            <span>{{ currentStudent.phoneNumber || 'No registrado' }}</span>
-          </div>
-          <div class="info-row">
-            <label>Fecha de Ingreso:</label>
-            <span>{{ currentStudent.enrollmentDate }}</span>
-          </div>
+          <div class="info-row"><label>Teléfono:</label> <span>{{ selectedStudentForView.phoneNumber || 'No registrado' }}</span></div>
+          <div class="info-row"><label>Fecha Ingreso:</label> <span>{{ selectedStudentForView.enrollmentDate }}</span></div>
         </div>
 
         <footer class="modal-actions">
           <button @click="isViewModalOpen = false" class="btn-cancel">Cerrar</button>
-          <button @click="goToEditFromView" class="btn-edit-main">
-            <i class="fa-solid fa-pen"></i> Editar Información
-          </button>
+          <button @click="goToEditFromView" class="btn-edit-main">Editar</button>
         </footer>
       </div>
     </div>
@@ -186,42 +170,67 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { useForm } from 'vee-validate';
+import { studentSchema } from '../schemas/StudentSchema';
 import api from '../services/api_service';
 
-
+// --- ESTADO ---
 const students = ref([]);
 const searchQuery = ref("");
 const currentPage = ref(1);
-const itemsPerPage = 5
+const itemsPerPage = 5;
+const isModalOpen = ref(false);
+const isEditing = ref(false);
+const isViewModalOpen = ref(false);
+const currentId = ref(null);
+const selectedStudentForView = ref(null);
+
 const majors = [
-  "Ingeniería Informática",
-  "Ingeniería Civil",
-  "Ingeniería Industrial",
-  "Administración de Empresas",
-  "Contaduría Pública",
-  "Derecho",
-  "Psicología",
-  "Comunicación Social"
+  "Ingeniería Informática", "Ingeniería Civil", "Ingeniería Industrial",
+  "Administración de Empresas", "Contaduría Pública", "Derecho",
+  "Psicología", "Comunicación Social"
 ];
 
-// Función para cargar datos de tu backend Sequelize
+// --- VEE-VALIDATE & ZOD ---
+
+const { errors, defineField, handleSubmit, resetForm, setValues } = useForm({
+  validationSchema: studentSchema,
+  // ESTO ES LO QUE DEBES AGREGAR/MODIFICAR:
+  initialValues: {
+    firstName: '',
+    lastName: '',
+    email: '',
+    major: '',
+    gpa: 0,
+    semester: 1,
+    phoneNumber: '',
+    enrollmentDate: new Date().toISOString().split('T')[0]
+  }
+});
+
+const [firstName] = defineField('firstName');
+const [lastName] = defineField('lastName');
+const [email] = defineField('email');
+const [major] = defineField('major');
+const [gpa] = defineField('gpa');
+const [semester] = defineField('semester');
+const [phoneNumber] = defineField('phoneNumber');
+const [enrollmentDate] = defineField('enrollmentDate');
+
+// --- LÓGICA ---
 const loadStudents = async () => {
   try {
     const response = await api.getStudents();
-    console.log("Datos recibidos en Students:", response.data); // REVISA ESTO EN CONSOLA
-    
-    // Si tu API devuelve { data: [...] }, usamos response.data
-    // Pero si por alguna razón devuelve los estudiantes directo, ajustamos:
-    students.value = response.data || []; 
+    students.value = response.data || [];
   } catch (error) {
     console.error("Error cargando estudiantes:", error);
   }
 };
 
-// Filtro en tiempo real (Frontend)
+onMounted(loadStudents);
+
 const filteredStudents = computed(() => {
   if (!searchQuery.value) return students.value;
-  
   const query = searchQuery.value.toLowerCase();
   return students.value.filter(s => 
     s.firstName.toLowerCase().includes(query) ||
@@ -233,128 +242,69 @@ const filteredStudents = computed(() => {
 
 const paginatedStudents = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return filteredStudents.value.slice(start, end);
+  return filteredStudents.value.slice(start, start + itemsPerPage);
 });
 
-// 3. CÁLCULO: Total de páginas basado en los resultados filtrados
-const totalPages = computed(() => {
-  const total = Math.ceil(filteredStudents.value.length / itemsPerPage);
-  return total > 0 ? total : 1;
-});
+const totalPages = computed(() => Math.ceil(filteredStudents.value.length / itemsPerPage) || 1);
 
-// 4. RESET: Si el usuario busca, lo regresamos a la página 1
-watch(searchQuery, () => {
-  currentPage.value = 1;
-});
+watch(searchQuery, () => currentPage.value = 1);
 
-const isModalOpen = ref(false);
-const isEditing = ref(false);
-const currentStudent = ref({
-  id: null,
-  firstName: '',
-  lastName: '',
-  major: '',
-  gpa: 0,
-  email: '',
-  semester: 1, // Nuevo
-  enrollmentDate: new Date().toISOString().split('T')[0], 
-  phoneNumber: '' 
-});
-
-// Abre el modal para crear nuevo
+// --- ACCIONES ---
 const openModal = () => {
   isEditing.value = false;
-  currentStudent.value = { id: null, firstName: '', lastName: '', major: '', gpa: 0, email: '' };
+  currentId.value = null;
+  resetForm();
   isModalOpen.value = true;
 };
 
-// Abre el modal para editar existente
 const editStudent = (student) => {
   isEditing.value = true;
-  // Copiamos los datos para no editar la tabla en tiempo real
-  currentStudent.value = { ...student };
+  currentId.value = student.id;
+  setValues({ ...student });
   isModalOpen.value = true;
 };
 
 const closeModal = () => {
   isModalOpen.value = false;
+  resetForm();
 };
 
-// Función para eliminar
-const confirmDelete = async (id) => {
-  console.log("ID a eliminar:", id); // <--- Mira esto en la consola (F12)
-  if (!id) return alert("Error: El estudiante no tiene un ID válido");
+const saveStudent = handleSubmit(async (values) => {
+  try {
+    if (isEditing.value) {
+      await api.updateStudent(currentId.value, values);
+    } else {
+      await api.createStudent(values);
+    }
+    await loadStudents();
+    closeModal();
+    alert("Operación exitosa");
+  } catch (error) {
+    alert("Error: " + (error.response?.data?.message || "Error de servidor"));
+  }
+});
 
+const confirmDelete = async (id) => {
   if (confirm("¿Seguro que deseas eliminar este estudiante?")) {
     try {
-      const response = await api.deleteStudent(id);
-      console.log("Respuesta del servidor:", response.data);
-      await loadStudents(); 
+      await api.deleteStudent(id);
+      await loadStudents();
     } catch (error) {
-      console.error("Error al eliminar:", error.response);
-      alert("No se pudo eliminar: " + (error.response?.data?.message || "Error de servidor"));
+      alert("No se pudo eliminar");
     }
   }
 };
-
-const saveStudent = async () => {
-  try {
-    // 1. Limpiamos los datos para que coincidan con tu validador del backend
-    // Aseguramos que el GPA sea un número decimal
-    const payload = {
-      firstName: currentStudent.value.firstName,
-      lastName: currentStudent.value.lastName,
-      email: currentStudent.value.email,
-      major: currentStudent.value.major,
-      semester: parseInt(currentStudent.value.semester),
-      gpa: parseFloat(currentStudent.value.gpa),
-      enrollmentDate: currentStudent.value.enrollmentDate,
-      // ESTA LÍNEA ES LA MAGIA: Quita cualquier cosa que no sea un número
-      phoneNumber: currentStudent.value.phoneNumber ? currentStudent.value.phoneNumber.replace(/\D/g, '') : ""
-    };
-
-    if (isEditing.value) {
-      // 2. Si estamos editando, llamamos a updateStudent (el PUT que tienes en el backend)
-      await api.updateStudent(currentStudent.value.id, payload);
-      console.log("Estudiante actualizado correctamente");
-    } else {
-      // 3. Si es nuevo, llamamos a createStudent (el POST que tienes en el backend)
-      await api.createStudent(payload);
-      console.log("Estudiante creado correctamente");
-    }
-
-    // 4. Acciones finales tras el éxito:
-    await loadStudents(); // Recargamos la tabla para ver los cambios
-    closeModal();         // Cerramos el modal
-    alert("Operación exitosa");
-
-  } catch (error) {
-      console.error("DEBUG COMPLETO:", error.response); // Esto es para ti en la consola (F12)
-      
-      // Si el backend nos da detalles (como los errores de Zod)
-      const detalleBackend = error.response?.data?.errors 
-          ? error.response.data.errors.map(e => `${e.path}: ${e.message}`).join(", ")
-          : error.response?.data?.message;
-
-      alert("Atención: " + (detalleBackend || "Error desconocido en el servidor"));
-  }
-};
-
-const isViewModalOpen = ref(false);
 
 const viewStudent = (student) => {
-  // Cargamos los datos en currentStudent para mostrarlos
-  currentStudent.value = { ...student };
+  selectedStudentForView.value = student;
   isViewModalOpen.value = true;
 };
 
 const goToEditFromView = () => {
+  const student = selectedStudentForView.value;
   isViewModalOpen.value = false;
-  isEditing.value = true; // Cambiamos a modo edición
-  isModalOpen.value = true; // Abrimos el modal que ya tenías
+  editStudent(student);
 };
-
 
 onMounted(loadStudents);
 </script>
@@ -578,5 +528,38 @@ td { padding: 15px; border-top: 1px solid #eee; }
     order: -1;
     margin-bottom: 0.5rem;
   }
+}
+
+input.input-error, 
+select.input-error {
+  border: 2px solid #ff5252 !important;
+  background-color: #fffafa !important;
+  box-shadow: 0 0 5px rgba(255, 82, 82, 0.2) !important;
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+.error-text {
+  color: #ff5252 !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+  text-align: left;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(3px); }
+  50% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
+
+/* Estilo de enfoque normal (sin error) */
+input:focus:not(.input-error), 
+select:focus:not(.input-error) {
+  border-color: #42b883;
+  box-shadow: 0 0 0 3px rgba(66, 184, 131, 0.1);
+  outline: none;
 }
 </style>
