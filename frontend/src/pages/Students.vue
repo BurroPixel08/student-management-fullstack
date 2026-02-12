@@ -97,8 +97,8 @@
               <label>Carrera</label>
               <select v-model="currentStudent.major" :class="{'input-error': errors.major}">
                  <option value="" disabled>Seleccionar...</option>
-                 <option value="Ingeniería Civil">Ingeniería Civil</option>
-                 <option value="Ingeniería Informática">Ingeniería Informática</option>
+                 <option value="Ingeniería civil">Ingeniería Civil</option>
+                 <option value="Ingeniería informática">Ingeniería Informática</option>
                  <option value="Ingeniería Industrial">Ingeniería Industrial</option>
                  <option value="Medicina">Medicina</option>
                  <option value="Derecho">Derecho</option>

@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-container">
     <h1 class="page-title">Dashboard Académico</h1>
-
+    <h4>By: Maikol Miery - Gustavo Barreto - Elimar Rodríguez - Kaira Henao / /  "Pixel Studio"</h4>
     <div class="stats-grid">
       <div class="stat-card">
         <div class="card-content">
