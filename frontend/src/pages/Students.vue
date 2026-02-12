@@ -168,19 +168,37 @@ import api from '../services/api_service';
 const students = ref([]);
 const searchQuery = ref('');
 
-// Función para cargar datos de tu backend Sequelize
+// GUSBWORKS 1.0 - ADICIÓN DE LA FUNCION AUXILIAR Y MODIFICACIÓN DE LA FUNCION LOAD Students 
+
+// Función auxiliar para traducir los datos del backend
+const mapBackendToFrontend = (backendStudent) => {
+  return {
+    // Si backend manda first_name, úsalo. Si ya manda firstName, úsalo también.
+    id: backendStudent.id,
+    firstName: backendStudent.first_name || backendStudent.firstName,
+    lastName: backendStudent.last_name || backendStudent.lastName,
+    email: backendStudent.email,
+    major: backendStudent.major,
+    semester: backendStudent.semester,
+    gpa: backendStudent.gpa,
+    enrollmentDate: backendStudent.enrollment_date || backendStudent.enrollmentDate, // OJO AQUÍ
+    phoneNumber: backendStudent.phone_number || backendStudent.phoneNumber
+  };
+};
+
 const loadStudents = async () => {
   try {
     const response = await api.getStudents();
-    console.log("Datos recibidos en Students:", response.data); // REVISA ESTO EN CONSOLA
+    console.log("Datos crudos del backend:", response.data); 
     
-    // Si tu API devuelve { data: [...] }, usamos response.data
-    // Pero si por alguna razón devuelve los estudiantes directo, ajustamos:
-    students.value = response.data || []; 
+    // Mapeamos cada estudiante antes de guardarlo
+    students.value = (response.data || []).map(mapBackendToFrontend);
+    
   } catch (error) {
     console.error("Error cargando estudiantes:", error);
   }
 };
+
 
 // Filtro en tiempo real (Frontend)
 const filteredStudents = computed(() => {
@@ -249,26 +267,27 @@ const confirmDelete = async (id) => {
   }
 };
 
+//GUSBWORKS MODIFICACION PARA QUE EL GUARDADO DE ESTUDIANTES SE ENVIE CON GUIÓN BAJO.
+
 const saveStudent = async () => {
   try {
+    // Preparamos el objeto con nombres en Snake_Case para el Backend
     // 1. Limpiamos los datos para que coincidan con tu validador del backend
     // Aseguramos que el GPA sea un número decimal
     const payload = {
-      firstName: currentStudent.value.firstName,
-      lastName: currentStudent.value.lastName,
+      first_name: currentStudent.value.firstName,  // Cambio clave
+      last_name: currentStudent.value.lastName,    // Cambio clave
       email: currentStudent.value.email,
       major: currentStudent.value.major,
       semester: parseInt(currentStudent.value.semester),
       gpa: parseFloat(currentStudent.value.gpa),
-      enrollmentDate: currentStudent.value.enrollmentDate,
-      // ESTA LÍNEA ES LA MAGIA: Quita cualquier cosa que no sea un número
-      phoneNumber: currentStudent.value.phoneNumber ? currentStudent.value.phoneNumber.replace(/\D/g, '') : ""
+      enrollment_date: currentStudent.value.enrollmentDate, // Cambio clave
+      phone_number: currentStudent.value.phoneNumber // Cambio clave
     };
 
     if (isEditing.value) {
       // 2. Si estamos editando, llamamos a updateStudent (el PUT que tienes en el backend)
       await api.updateStudent(currentStudent.value.id, payload);
-      console.log("Estudiante actualizado correctamente");
     } else {
       // 3. Si es nuevo, llamamos a createStudent (el POST que tienes en el backend)
       await api.createStudent(payload);
