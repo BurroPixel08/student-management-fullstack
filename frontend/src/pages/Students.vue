@@ -1,5 +1,5 @@
 <template>
-  <div class="students-container">
+  <div class="page-container">
     <header class="table-header">
       <h2>Listado de Estudiantes</h2>
       <button class="btn-add" @click="openModal">
@@ -188,6 +188,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import api from '../services/api_service';
+import Swal from 'sweetalert2'; // <--- POP UPS
 
 
 const students = ref([]);
@@ -207,6 +208,18 @@ const majors = [
   "Comunicación Social"
 ];
 
+// gusbworks 3.1: SweetAlert Toast Configuration
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end', // Sale en la esquina superior derecha
+  showConfirmButton: false,
+  timer: 3000, // Dura 3 segundos
+  timerProgressBar: true,
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer)
+    toast.addEventListener('mouseleave', Swal.resumeTimer)
+  }
+});
 
 // GUSBWORKS 1.0 - ADICIÓN DE LA FUNCION AUXILIAR Y MODIFICACIÓN DE LA FUNCION LOAD Students 
 
@@ -325,23 +338,44 @@ const closeModal = () => { isModalOpen.value = false; };
 
 // Función para eliminar
 const confirmDelete = async (id) => {
-  console.log("ID a eliminar:", id); // <--- Mira esto en la consola (F12)
-  if (!id) return alert("Error: El estudiante no tiene un ID válido");
-
-  if (confirm("¿Seguro que deseas eliminar este estudiante?")) {
-    try {
-      const response = await api.deleteStudent(id);
-      console.log("Respuesta del servidor:", response.data);
-      await loadStudents(); 
-    } catch (error) {
-      console.error("Error al eliminar:", error.response);
-      alert("No se pudo eliminar: " + (error.response?.data?.message || "Error de servidor"));
+  // gusbworks 3.1: SweetAlert Confirmation Dialog
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: "No podrás revertir esta acción",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#42b883', // Usamos tu verde
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+    background: '#fff',
+    color: '#333'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        await api.deleteStudent(id);
+        
+        await loadStudents();
+        
+        // Mensaje de éxito tras borrar
+        Toast.fire({
+          icon: 'success',
+          title: 'Estudiante eliminado'
+        });
+        
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo eliminar el estudiante'
+        });
+      }
     }
-  }
+  });
 };
 
 
-// gusbworks 1.8: Volvemos al PUT y hacemos el detector de errores a prueba de balas
+// Función para guardar o actualizar
 const saveStudent = async () => {
   try {
     const payload = {
@@ -352,36 +386,45 @@ const saveStudent = async () => {
       semester: parseInt(currentStudent.value.semester),
       gpa: parseFloat(String(currentStudent.value.gpa).replace(',', '.')),
       enrollmentDate: currentStudent.value.enrollmentDate,
-      phoneNumber: currentStudent.value.phoneNumber || ""
+      phoneNumber: currentStudent.value.phoneNumber || "" 
     };
 
     if (isEditing.value) {
-      // CAMBIO AQUÍ: Volvemos a updateStudent (PUT)
       await api.updateStudent(currentStudent.value.id, payload);
     } else {
       await api.createStudent(payload);
     }
 
-    await loadStudents(); 
-    closeModal();         
-    alert("Operación exitosa");
+    await loadStudents();
+    closeModal();
+    
+    // gusbworks 3.1: Beautiful Success Message
+    Toast.fire({
+      icon: 'success',
+      title: isEditing.value ? 'Estudiante actualizado' : 'Estudiante creado exitosamente'
+    });
 
   } catch (error) {
-      console.error("DEBUG COMPLETO:", error.response?.data);
-      
-      // Detector de errores mejorado (atrapa singular y plural)
+      console.error("DEBUG:", error.response?.data);
       let detalleBackend = error.response?.data?.message || "Error de servidor";
       
       if (error.response?.data?.errors) {
+        // Detector de errores mejorado (atrapa singular y plural)
           detalleBackend = error.response.data.errors.map(e => `${e.path}: ${e.message}`).join(", ");
       } else if (error.response?.data?.error) {
-          // Si el backend manda "error" en lugar de "errors"
+        // Si el backend manda "error" en lugar de "errors" else if
           detalleBackend = JSON.stringify(error.response.data.error);
       }
-          
-      alert("Atención: " + detalleBackend);
+      
+      // gusbworks 3.1: Beautiful Error Message
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: detalleBackend,
+      });
   }
 };
+
 
 const isViewModalOpen = ref(false);
 
@@ -398,227 +441,8 @@ const goToEditFromView = () => {
 };
 
 
+
+
 onMounted(loadStudents);
 </script>
 
-<style scoped>
-/* Estilos alineados a tu Dashboard oscuro */
-.students-container { padding: 20px; }
-.table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-.btn-add { background: #42b883; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
-
-.search-box input {
-  width: 100%;
-  padding: 10px;
-  background: #2a2a2a;
-  border: 1px solid #444;
-  border-radius: 8px;
-  color: white;
-  margin-bottom: 20px;
-}
-
-.table-wrapper { background: white; border-radius: 12px; overflow: hidden; color: #333; }
-table { width: 100%; border-collapse: collapse; }
-th { background: #f8f9fa; padding: 15px; text-align: left; color: #777; font-size: 0.85rem; text-transform: uppercase; }
-td { padding: 15px; border-top: 1px solid #eee; }
-
-.actions { display: flex; gap: 10px; }
-.btn-edit { color: #8480f1; background: none; border: none; cursor: pointer; font-size: 1.1rem; }
-.btn-delete { color: #ff5252; background: none; border: none; cursor: pointer; font-size: 1.1rem; }
-
-.no-data { padding: 40px; text-align: center; color: #999; }
-
-/* Estilos del Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex; justify-content: center; align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  padding: 30px;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 450px;
-  color: #333;
-}
-
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-.form-group input, select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.btn-cancel { background: #eee; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
-.btn-save { background: #42b883; color: white; border: none; padding: 10px 20px;}
-
-.view-card {
-  max-width: 500px;
-  border-top: 5px solid #42b883;
-}
-
-.view-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.avatar-circle {
-  width: 60px;
-  height: 60px;
-  background: #42b883;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin: 0 auto 10px;
-}
-
-.view-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.info-row {
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 5px;
-}
-
-.info-row label {
-  font-size: 0.8rem;
-  color: #888;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.info-row span {
-  font-size: 1.1rem;
-  color: #333;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
-.gpa-badge {
-  color: #42b883 !important;
-  font-weight: bold;
-}
-
-.btn-edit-main {
-  background: #8480f1;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Contenedor Principal */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1.5rem;
-  margin-top: 2rem;
-  padding: 1rem;
-  background: #1e1e1e; /* Un gris un poco más claro que el fondo para que resalte */
-  border-radius: 12px;
-  border: 1px solid #333;
-}
-
-/* Botones Anterior/Siguiente */
-.page-btn {
-  background-color: #2a2a2a;
-  color: #ffffff;
-  border: 1px solid #444;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.page-btn i {
-  font-size: 0.8rem;
-}
-
-/* Efecto Hover */
-.page-btn:hover:not(:disabled) {
-  background-color: #42b883;
-  border-color: #42b883;
-  color: #121212; /* Texto oscuro para que resalte con el verde */
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(66, 184, 131, 0.3);
-}
-
-/* Efecto Click */
-.page-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-/* Botón Deshabilitado */
-.page-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  filter: grayscale(1);
-  background-color: #1a1a1a;
-}
-
-/* Información de la Página */
-.page-numbers {
-  color: #888;
-  font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
-  letter-spacing: 0.5px;
-}
-
-.page-numbers strong {
-  color: #42b883;
-  font-size: 1.1rem;
-  padding: 0 4px;
-}
-
-/* Adaptación para pantallas pequeñas */
-@media (max-width: 480px) {
-  .pagination {
-    gap: 0.5rem;
-    flex-direction: column;
-  }
-  
-  .page-numbers {
-    order: -1;
-    margin-bottom: 0.5rem;
-  }
-}
-</style>
