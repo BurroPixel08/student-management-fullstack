@@ -16,43 +16,61 @@
     </div>
 
     <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Estudiante</th>
-            <th>Carrera</th>
-            <th>GPA</th>
-            <th>Email</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr 
-            v-for="student in filteredStudents" 
-            :key="student.id" 
-            @click="viewStudent(student)"
-            class="clickable-row"
-          >
-            <td>{{ student.firstName }} {{ student.lastName }}</td>
-            <td>{{ student.major }}</td>
-            <td>{{ student.gpa }}</td>
-            <td>{{ student.email }}</td>
-            <td class="actions">
-              <button @click.stop="editStudent(student)" class="btn-edit">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-              <button @click.stop="confirmDelete(student.id)" class="btn-delete">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Carrera</th>
+        <th>GPA</th>
+        <th>Email</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr 
+        v-for="student in paginatedStudents" 
+        :key="student.id" 
+        @click="viewStudent(student)"
+        class="clickable-row"
+      >
+        <td>{{ student.firstName }} {{ student.lastName }}</td>
+        <td>{{ student.major }}</td>
+        <td>{{ student.gpa }}</td>
+        <td>{{ student.email }}</td>
+        <td class="actions">
+          <button @click.stop="editStudent(student)" class="btn-edit">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button @click.stop="deleteStudent(student.id)" class="btn-delete">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
-      <div v-if="filteredStudents.length === 0" class="no-data">
-        No se encontraron registros.
-      </div>
+  <div class="pagination" v-if="filteredStudents.length > 0">
+    <button 
+      :disabled="currentPage === 1" 
+      @click="currentPage--"
+      class="page-btn"
+    >
+      <i class="fa-solid fa-chevron-left"></i> Anterior
+    </button>
+
+    <div class="page-numbers">
+      <span>Página <strong>{{ currentPage }}</strong> de {{ totalPages }}</span>
     </div>
+
+    <button 
+      :disabled="currentPage === totalPages" 
+      @click="currentPage++"
+      class="page-btn"
+    >
+      Siguiente <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
+</div>
     <div v-if="isModalOpen" class="modal-overlay">
       <div class="modal-content">
         <h3>{{ isEditing ? 'Editar Estudiante' : 'Nuevo Estudiante' }}</h3>
@@ -68,10 +86,15 @@
             <input v-model="currentStudent.lastName" type="text" required placeholder="Ej: Pérez">
           </div>
 
-          <div class="form-group">
-            <label>Carrera</label>
-            <input v-model="currentStudent.major" type="text" required placeholder="Ej: Ingeniería">
-          </div>
+         <div class="form-group">
+          <label>Carrera</label>
+          <select v-model="currentStudent.major" required class="form-control">
+            <option value="" disabled>Seleccione una carrera...</option>
+            <option v-for="major in majors" :key="major" :value="major">
+              {{ major }}
+            </option>
+          </select>
+        </div>
 
           <div class="form-group">
             <label>GPA</label>
@@ -162,11 +185,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '../services/api_service';
 
+
 const students = ref([]);
-const searchQuery = ref('');
+const searchQuery = ref("");
+const currentPage = ref(1);
+const itemsPerPage = 5
+const majors = [
+  "Ingeniería Informática",
+  "Ingeniería Civil",
+  "Ingeniería Industrial",
+  "Administración de Empresas",
+  "Contaduría Pública",
+  "Derecho",
+  "Psicología",
+  "Comunicación Social"
+];
 
 // Función para cargar datos de tu backend Sequelize
 const loadStudents = async () => {
@@ -184,19 +220,32 @@ const loadStudents = async () => {
 
 // Filtro en tiempo real (Frontend)
 const filteredStudents = computed(() => {
-  // Si no hay estudiantes, devolver array vacío
-  if (!students.value) return [];
-  
-  // Si no hay nada escrito en el buscador, devolver todos
   if (!searchQuery.value) return students.value;
-
-  const q = searchQuery.value.toLowerCase();
+  
+  const query = searchQuery.value.toLowerCase();
   return students.value.filter(s => 
-    (s.firstName && s.firstName.toLowerCase().includes(q)) || 
-    (s.lastName && s.lastName.toLowerCase().includes(q)) ||
-    (s.major && s.major.toLowerCase().includes(q)) ||
-    (s.email && s.email.toLowerCase().includes(q))
+    s.firstName.toLowerCase().includes(query) ||
+    s.lastName.toLowerCase().includes(query) ||
+    s.email.toLowerCase().includes(query) ||
+    s.major.toLowerCase().includes(query)
   );
+});
+
+const paginatedStudents = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredStudents.value.slice(start, end);
+});
+
+// 3. CÁLCULO: Total de páginas basado en los resultados filtrados
+const totalPages = computed(() => {
+  const total = Math.ceil(filteredStudents.value.length / itemsPerPage);
+  return total > 0 ? total : 1;
+});
+
+// 4. RESET: Si el usuario busca, lo regresamos a la página 1
+watch(searchQuery, () => {
+  currentPage.value = 1;
 });
 
 const isModalOpen = ref(false);
@@ -306,6 +355,7 @@ const goToEditFromView = () => {
   isModalOpen.value = true; // Abrimos el modal que ya tenías
 };
 
+
 onMounted(loadStudents);
 </script>
 
@@ -358,12 +408,13 @@ td { padding: 15px; border-top: 1px solid #eee; }
 
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-.form-group input {
+.form-group input, select {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
 }
+
 
 .modal-actions {
   display: flex;
@@ -445,5 +496,87 @@ td { padding: 15px; border-top: 1px solid #eee; }
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Contenedor Principal */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #1e1e1e; /* Un gris un poco más claro que el fondo para que resalte */
+  border-radius: 12px;
+  border: 1px solid #333;
+}
+
+/* Botones Anterior/Siguiente */
+.page-btn {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #444;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-btn i {
+  font-size: 0.8rem;
+}
+
+/* Efecto Hover */
+.page-btn:hover:not(:disabled) {
+  background-color: #42b883;
+  border-color: #42b883;
+  color: #121212; /* Texto oscuro para que resalte con el verde */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 184, 131, 0.3);
+}
+
+/* Efecto Click */
+.page-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Botón Deshabilitado */
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  filter: grayscale(1);
+  background-color: #1a1a1a;
+}
+
+/* Información de la Página */
+.page-numbers {
+  color: #888;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.page-numbers strong {
+  color: #42b883;
+  font-size: 1.1rem;
+  padding: 0 4px;
+}
+
+/* Adaptación para pantallas pequeñas */
+@media (max-width: 480px) {
+  .pagination {
+    gap: 0.5rem;
+    flex-direction: column;
+  }
+  
+  .page-numbers {
+    order: -1;
+    margin-bottom: 0.5rem;
+  }
 }
 </style>
