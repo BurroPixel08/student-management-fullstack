@@ -9,9 +9,16 @@ const apiClient = axios.create({
 });
 
 export default {
-  // Función para traer todos los estudiantes
-  getStudents() {
-    return apiClient.get('/');
+// Función para traer todos los estudiantes
+// gusbworks 1.0: Actualizado para recibir page y limit como argumentos
+  getStudents(page = 1, limit = 5, filters = {}) {
+    // gusbworks 1.1: Construimos los params para enviar al backend
+    const params = {
+      page,
+      limit,
+      ...filters
+    };
+    return apiClient.get('/', { params });
   },
 
   // Función para traer las estadísticas (GPA, carreras, etc.)

@@ -28,7 +28,7 @@
     </thead>
     <tbody>
       <tr 
-        v-for="student in paginatedStudents" 
+        v-for="student in studentsList" 
         :key="student.id" 
         @click="viewStudent(student)"
         class="clickable-row"
@@ -41,36 +41,37 @@
           <button @click.stop="editStudent(student)" class="btn-edit">
             <i class="fa-solid fa-pen"></i>
           </button>
-          <button @click.stop="deleteStudent(student.id)" class="btn-delete">
-            <i class="fa-solid fa-trash"></i>
-          </button>
+            <button @click.stop="confirmDelete(student.id)" class="btn-delete">
+               <i class="fa-solid fa-trash"></i>
+            </button>
         </td>
       </tr>
     </tbody>
   </table>
 
-  <div class="pagination" v-if="filteredStudents.length > 0">
+<div class="pagination">
     <button 
       :disabled="currentPage === 1" 
-      @click="currentPage--"
+      @click="changePage(currentPage - 1)"
       class="page-btn"
     >
-      <i class="fa-solid fa-chevron-left"></i> Anterior
+      <i class="fa-solid fa-chevron-left"></i> Previous
     </button>
 
     <div class="page-numbers">
-      <span>Página <strong>{{ currentPage }}</strong> de {{ totalPages }}</span>
+      <span>Page <strong>{{ currentPage }}</strong> of {{ totalPages }}</span>
     </div>
 
     <button 
       :disabled="currentPage === totalPages" 
-      @click="currentPage++"
+      @click="changePage(currentPage + 1)"
       class="page-btn"
     >
-      Siguiente <i class="fa-solid fa-chevron-right"></i>
+      Next <i class="fa-solid fa-chevron-right"></i>
     </button>
   </div>
 </div>
+
     <div v-if="isModalOpen" class="modal-overlay">
       <div class="modal-content">
         <h3>{{ isEditing ? 'Editar Estudiante' : 'Nuevo Estudiante' }}</h3>
@@ -98,7 +99,7 @@
 
           <div class="form-group">
             <label>GPA</label>
-            <input v-model="currentStudent.gpa" type="number" step="0.1" min="0" max="5" required>
+            <input v-model="currentStudent.gpa" type="number" step="0.1" min="0" max="4" required>
           </div>
 
           <div class="form-group">
@@ -190,9 +191,11 @@ import api from '../services/api_service';
 
 
 const students = ref([]);
+const studentsList = ref([]); // Lista real que viene del server
 const searchQuery = ref("");
 const currentPage = ref(1);
-const itemsPerPage = 5
+const totalPages = ref(1); // gusbworks 1.2: Variables de estado para la paginación - total de paginas
+const itemsPerPage = 5;
 const majors = [
   "Ingeniería Informática",
   "Ingeniería Civil",
@@ -204,37 +207,67 @@ const majors = [
   "Comunicación Social"
 ];
 
+
 // GUSBWORKS 1.0 - ADICIÓN DE LA FUNCION AUXILIAR Y MODIFICACIÓN DE LA FUNCION LOAD Students 
 
-// Función auxiliar para traducir los datos del backend
-const mapBackendToFrontend = (backendStudent) => {
+// gusbworks 1.7: Corrección de formato de fecha al cargar desde la DB
+const mapBackendToFrontend = (data) => {
+  // Extraemos la fecha raw y la cortamos por la 'T' para obtener solo YYYY-MM-DD
+  const rawDate = data.enrollment_date || data.enrollmentDate || '';
+  const formattedDate = rawDate.split('T')[0];
+
   return {
-    // Si backend manda first_name, úsalo. Si ya manda firstName, úsalo también.
-    id: backendStudent.id,
-    firstName: backendStudent.first_name || backendStudent.firstName,
-    lastName: backendStudent.last_name || backendStudent.lastName,
-    email: backendStudent.email,
-    major: backendStudent.major,
-    semester: backendStudent.semester,
-    gpa: backendStudent.gpa,
-    enrollmentDate: backendStudent.enrollment_date || backendStudent.enrollmentDate, // OJO AQUÍ
-    phoneNumber: backendStudent.phone_number || backendStudent.phoneNumber
+    id: data.id,
+    firstName: data.first_name || data.firstName,
+    lastName: data.last_name || data.lastName,
+    email: data.email,
+    major: data.major,
+    semester: data.semester,
+    gpa: data.gpa,
+    enrollmentDate: formattedDate, // ¡Fecha limpia para el formulario HTML!
+    phoneNumber: data.phone_number || data.phoneNumber
   };
 };
 
+// gusbworks 2.0: Updated to send search query to API
 const loadStudents = async () => {
   try {
-    const response = await api.getStudents();
-    console.log("Datos crudos del backend:", response.data); 
+    // Creamos el objeto filters con lo que haya en la caja de búsqueda
+    const filters = { search: searchQuery.value }; 
     
-    // Mapeamos cada estudiante antes de guardarlo
-    students.value = (response.data || []).map(mapBackendToFrontend);
+    // Lo enviamos como tercer parámetro a nuestro api_service
+    const response = await api.getStudents(currentPage.value, itemsPerPage, filters);
     
+    if (response.data.data) {
+      studentsList.value = response.data.data.map(mapBackendToFrontend);
+      totalPages.value = response.data.totalPages;
+      currentPage.value = response.data.currentPage;
+    } else {
+      studentsList.value = response.data.map(mapBackendToFrontend);
+    }
   } catch (error) {
-    console.error("Error cargando estudiantes:", error);
+    console.error("Error loading students:", error);
   }
 };
 
+// gusbworks 2.0: Debounce search to prevent API spam
+let searchTimeout;
+watch(searchQuery, () => {
+  clearTimeout(searchTimeout);
+  
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1; // Volvemos a la página 1 al buscar
+    loadStudents();        // Llamamos al backend con la nueva palabra
+  }, 300);
+});
+
+// gusbworks 1.2: New page change handler
+const changePage = (page) => {
+  if (page > 0 && page <= totalPages.value) {
+    currentPage.value = page;
+    loadStudents();
+  }
+};
 
 // Filtro en tiempo real (Frontend)
 const filteredStudents = computed(() => {
@@ -249,21 +282,14 @@ const filteredStudents = computed(() => {
   );
 });
 
-const paginatedStudents = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return filteredStudents.value.slice(start, end);
-});
 
-// 3. CÁLCULO: Total de páginas basado en los resultados filtrados
-const totalPages = computed(() => {
-  const total = Math.ceil(filteredStudents.value.length / itemsPerPage);
-  return total > 0 ? total : 1;
-});
+// gusb 1.2 removido el calculo de paginas
 
 // 4. RESET: Si el usuario busca, lo regresamos a la página 1
+// Reset to page 1 on search
 watch(searchQuery, () => {
   currentPage.value = 1;
+  // Note: Add logic here if backend search is implemented
 });
 
 const isModalOpen = ref(false);
@@ -283,7 +309,7 @@ const currentStudent = ref({
 // Abre el modal para crear nuevo
 const openModal = () => {
   isEditing.value = false;
-  currentStudent.value = { id: null, firstName: '', lastName: '', major: '', gpa: 0, email: '' };
+  currentStudent.value = { id: null, firstName: '', lastName: '', major: '', gpa: 0, email: '', semester: 1 };
   isModalOpen.value = true;
 };
 
@@ -295,9 +321,7 @@ const editStudent = (student) => {
   isModalOpen.value = true;
 };
 
-const closeModal = () => {
-  isModalOpen.value = false;
-};
+const closeModal = () => { isModalOpen.value = false; };
 
 // Función para eliminar
 const confirmDelete = async (id) => {
@@ -316,47 +340,46 @@ const confirmDelete = async (id) => {
   }
 };
 
-//GUSBWORKS MODIFICACION PARA QUE EL GUARDADO DE ESTUDIANTES SE ENVIE CON GUIÓN BAJO.
 
+// gusbworks 1.8: Volvemos al PUT y hacemos el detector de errores a prueba de balas
 const saveStudent = async () => {
   try {
-    // Preparamos el objeto con nombres en Snake_Case para el Backend
-    // 1. Limpiamos los datos para que coincidan con tu validador del backend
-    // Aseguramos que el GPA sea un número decimal
     const payload = {
-      first_name: currentStudent.value.firstName,  // Cambio clave
-      last_name: currentStudent.value.lastName,    // Cambio clave
+      firstName: currentStudent.value.firstName,
+      lastName: currentStudent.value.lastName,
       email: currentStudent.value.email,
       major: currentStudent.value.major,
       semester: parseInt(currentStudent.value.semester),
-      gpa: parseFloat(currentStudent.value.gpa),
-      enrollment_date: currentStudent.value.enrollmentDate, // Cambio clave
-      phone_number: currentStudent.value.phoneNumber // Cambio clave
+      gpa: parseFloat(String(currentStudent.value.gpa).replace(',', '.')),
+      enrollmentDate: currentStudent.value.enrollmentDate,
+      phoneNumber: currentStudent.value.phoneNumber || ""
     };
 
     if (isEditing.value) {
-      // 2. Si estamos editando, llamamos a updateStudent (el PUT que tienes en el backend)
+      // CAMBIO AQUÍ: Volvemos a updateStudent (PUT)
       await api.updateStudent(currentStudent.value.id, payload);
     } else {
-      // 3. Si es nuevo, llamamos a createStudent (el POST que tienes en el backend)
       await api.createStudent(payload);
-      console.log("Estudiante creado correctamente");
     }
 
-    // 4. Acciones finales tras el éxito:
-    await loadStudents(); // Recargamos la tabla para ver los cambios
-    closeModal();         // Cerramos el modal
+    await loadStudents(); 
+    closeModal();         
     alert("Operación exitosa");
 
   } catch (error) {
-      console.error("DEBUG COMPLETO:", error.response); // Esto es para ti en la consola (F12)
+      console.error("DEBUG COMPLETO:", error.response?.data);
       
-      // Si el backend nos da detalles (como los errores de Zod)
-      const detalleBackend = error.response?.data?.errors 
-          ? error.response.data.errors.map(e => `${e.path}: ${e.message}`).join(", ")
-          : error.response?.data?.message;
-
-      alert("Atención: " + (detalleBackend || "Error desconocido en el servidor"));
+      // Detector de errores mejorado (atrapa singular y plural)
+      let detalleBackend = error.response?.data?.message || "Error de servidor";
+      
+      if (error.response?.data?.errors) {
+          detalleBackend = error.response.data.errors.map(e => `${e.path}: ${e.message}`).join(", ");
+      } else if (error.response?.data?.error) {
+          // Si el backend manda "error" en lugar de "errors"
+          detalleBackend = JSON.stringify(error.response.data.error);
+      }
+          
+      alert("Atención: " + detalleBackend);
   }
 };
 

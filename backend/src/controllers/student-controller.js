@@ -1,3 +1,4 @@
+const { Op } = require('sequelize'); // gusbworks 2.0: Import required for search
 const { Student, sequelize } = require('../models/student-model');
 const { validateStudent, validatePartialStudent } = require('../utils/validator');
 
@@ -33,41 +34,57 @@ const createStudent = async (req, res) => {
 };
 
 
-// Get all the students and filter-----------------
+// Get all students with pagination and filtering
 const getAllStudents = async (req, res) => {
   try {
-    const { major, semester, is_active } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    
+    // gusbworks 2.0: Extract 'search' parameter
+    const { major, semester, is_active, search } = req.query;
+
     const queryOptions = {};
 
-    if (major) {
-      queryOptions.major = major;
-    }
-
-    if (semester) {
-      queryOptions.semester = Number(semester);
-    }
-
+    if (major) queryOptions.major = major;
+    if (semester) queryOptions.semester = Number(semester);
+    
     if (is_active !== undefined) {
       queryOptions.isActive = (is_active === 'true');
     } else {
-      queryOptions.isActive = true;
+      queryOptions.isActive = true; 
     }
 
-    const students = await Student.findAll({
+    // gusbworks 2.0: Server-side search logic (Name, LastName, or Email)
+    if (search) {
+      queryOptions[Op.or] = [
+        { first_name: { [Op.like]: `%${search}%` } },
+        { last_name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const paginationConfig = {
+        limit: limit,
+        offset: (page - 1) * limit
+    };
+
+    const { count, rows } = await Student.findAndCountAll({
       where: queryOptions,
-      order: [['last_name', 'ASC']]
+      order: [['last_name', 'ASC']],
+      ...paginationConfig 
     });
 
-    res.json(students);
+    res.json({
+        totalItems: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        data: rows 
+    });
 
   } catch (error) {
-    res.status(500).json({ 
-      message: 'Error retrieving students', 
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Error', error: error.message });
   }
 };
-
 
 // Get a student by ID -----------------
 const getStudentById = async (req, res) => {
