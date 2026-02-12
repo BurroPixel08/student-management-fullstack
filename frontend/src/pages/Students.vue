@@ -27,14 +27,23 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="student in filteredStudents" :key="student.id">
+          <tr 
+            v-for="student in filteredStudents" 
+            :key="student.id" 
+            @click="viewStudent(student)"
+            class="clickable-row"
+          >
             <td>{{ student.firstName }} {{ student.lastName }}</td>
             <td>{{ student.major }}</td>
             <td>{{ student.gpa }}</td>
             <td>{{ student.email }}</td>
             <td class="actions">
-              <button @click="editStudent(student)" class="btn-edit"><i class="fa-solid fa-pen"></i></button>
-              <button @click="confirmDelete(student.id)" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+              <button @click.stop="editStudent(student)" class="btn-edit">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button @click.stop="confirmDelete(student.id)" class="btn-delete">
+                <i class="fa-solid fa-trash"></i>
+              </button>
             </td>
           </tr>
         </tbody>
@@ -96,6 +105,57 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div v-if="isViewModalOpen" class="modal-overlay">
+      <div class="modal-content view-card">
+        <header class="view-header">
+          <div class="avatar-circle">
+            {{ currentStudent.firstName[0] }}{{ currentStudent.lastName[0] }}
+          </div>
+          <h3>Detalles del Estudiante</h3>
+        </header>
+
+        <div class="view-body">
+          <div class="info-row">
+            <label>Nombre Completo:</label>
+            <span>{{ currentStudent.firstName }} {{ currentStudent.lastName }}</span>
+          </div>
+          <div class="info-row">
+            <label>Correo Electrónico:</label>
+            <span>{{ currentStudent.email }}</span>
+          </div>
+          <div class="info-row">
+            <label>Carrera:</label>
+            <span>{{ currentStudent.major }}</span>
+          </div>
+          <div class="info-grid">
+            <div class="info-row">
+              <label>Semestre:</label>
+              <span>{{ currentStudent.semester }}°</span>
+            </div>
+            <div class="info-row">
+              <label>GPA:</label>
+              <span class="gpa-badge">{{ currentStudent.gpa }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <label>Teléfono:</label>
+            <span>{{ currentStudent.phoneNumber || 'No registrado' }}</span>
+          </div>
+          <div class="info-row">
+            <label>Fecha de Ingreso:</label>
+            <span>{{ currentStudent.enrollmentDate }}</span>
+          </div>
+        </div>
+
+        <footer class="modal-actions">
+          <button @click="isViewModalOpen = false" class="btn-cancel">Cerrar</button>
+          <button @click="goToEditFromView" class="btn-edit-main">
+            <i class="fa-solid fa-pen"></i> Editar Información
+          </button>
+        </footer>
       </div>
     </div>
   </div>
@@ -198,10 +258,11 @@ const saveStudent = async () => {
       lastName: currentStudent.value.lastName,
       email: currentStudent.value.email,
       major: currentStudent.value.major,
-      semester: parseInt(currentStudent.value.semester), 
-      gpa: parseFloat(currentStudent.value.gpa),        
-      enrollmentDate: currentStudent.value.enrollmentDate, 
-      phoneNumber: currentStudent.value.phoneNumber || undefined 
+      semester: parseInt(currentStudent.value.semester),
+      gpa: parseFloat(currentStudent.value.gpa),
+      enrollmentDate: currentStudent.value.enrollmentDate,
+      // ESTA LÍNEA ES LA MAGIA: Quita cualquier cosa que no sea un número
+      phoneNumber: currentStudent.value.phoneNumber ? currentStudent.value.phoneNumber.replace(/\D/g, '') : ""
     };
 
     if (isEditing.value) {
@@ -229,6 +290,20 @@ const saveStudent = async () => {
 
       alert("Atención: " + (detalleBackend || "Error desconocido en el servidor"));
   }
+};
+
+const isViewModalOpen = ref(false);
+
+const viewStudent = (student) => {
+  // Cargamos los datos en currentStudent para mostrarlos
+  currentStudent.value = { ...student };
+  isViewModalOpen.value = true;
+};
+
+const goToEditFromView = () => {
+  isViewModalOpen.value = false;
+  isEditing.value = true; // Cambiamos a modo edición
+  isModalOpen.value = true; // Abrimos el modal que ya tenías
 };
 
 onMounted(loadStudents);
@@ -299,4 +374,76 @@ td { padding: 15px; border-top: 1px solid #eee; }
 
 .btn-cancel { background: #eee; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
 .btn-save { background: #42b883; color: white; border: none; padding: 10px 20px;}
+
+.view-card {
+  max-width: 500px;
+  border-top: 5px solid #42b883;
+}
+
+.view-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.avatar-circle {
+  width: 60px;
+  height: 60px;
+  background: #42b883;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0 auto 10px;
+}
+
+.view-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 5px;
+}
+
+.info-row label {
+  font-size: 0.8rem;
+  color: #888;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.info-row span {
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.gpa-badge {
+  color: #42b883 !important;
+  font-weight: bold;
+}
+
+.btn-edit-main {
+  background: #8480f1;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 </style>
