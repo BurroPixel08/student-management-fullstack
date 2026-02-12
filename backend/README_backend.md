@@ -75,6 +75,7 @@ Cuerpo (JSON):
   "semester": 4,
   "gpa": 4.5,
   "enrollmentDate": "2024-02-15"
+  "phoneNumber": "0412-1234567"
 }
 ```
 - - -
@@ -107,6 +108,7 @@ Cuerpo (JSON): Debes enviar el objeto completo para asegurar la integridad.
   "gpa": 4.3,
   "is_active": true,
   "enrollmentDate": "2024-01-15"
+  "phoneNumber": '0412-1234567'
 }
 ```
 ---
@@ -115,6 +117,13 @@ Aplica el método destroy de Sequelize con paranoid: true, lo que llena el campo
 
 DELETE ```/api/students/:id```
 
+---
+**Estadísticas del Sistema**
+Permite obtener una visión general del estado actual de los estudiantes, las carreras actuales y promedios.
+
+GET ``/api/statistics``
+
+----
 
 ## Uso de la IA
 
@@ -137,3 +146,5 @@ Adicionalmente, la IA ayudó en la generación y explicación de algunos de los 
 ## Autores
 - Maikol Miery
 - Elimar Rodríguez
+- Gustavo Barreto
+- Kaira Henao
