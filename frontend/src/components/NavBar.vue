@@ -1,5 +1,9 @@
 <template>
-  <nav :class="{ active: isExpanded }" @mouseenter="$emit('toggle-nav', true); isExpanded = true" @mouseleave="$emit('toggle-nav', false); isExpanded = false">
+  <nav 
+    :class="{ active: !isCollapsed }" 
+    @mouseenter="$emit('toggle-nav', true)" 
+    @mouseleave="$emit('toggle-nav', false)"
+  >
     <ul>
       <li class="logo">
         <router-link to="/">
@@ -41,9 +45,10 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue';
+    // Recibimos la orden desde App.vue
+    defineProps(['isCollapsed']);
     
-    const isExpanded = ref(false);
+    // Emitimos eventos para cuando pasas el mouse en escritorio
     defineEmits(['toggle-nav']);
 </script>
 
@@ -67,8 +72,9 @@ nav {
   overflow: hidden;
 }
 
+/* Cuando esta clase se activa (por la prop), el menú crece */
 nav.active {
-  width: 250px;
+  width: 250px; /* Ancho expandido */
 }
 
 nav ul {
@@ -90,7 +96,6 @@ nav ul li {
   margin-bottom: 5px;
 }
 
-/* Efecto Hover que pediste */
 nav ul li:hover {
   background-color: #242424; /* Color de fondo de tu app */
   transform: translateX(10px);
@@ -132,8 +137,9 @@ nav ul li a h2 {
   padding-left: 10px;
 }
 
+/* REGLA MÁGICA: Si nav tiene la clase .active, muestra el texto */
 nav.active ul li a h2 {
-  opacity: 1; /* Visible al expandir */
+  opacity: 1; 
 }
 
 /* Estilo para el link activo de Vue Router */

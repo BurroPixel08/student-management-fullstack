@@ -12,11 +12,11 @@
     ></div>
 
     <aside class="sidebar-wrapper" :class="{ 'mobile-open': isMobileOpen }">
-      <Navbar 
-        @toggle-nav="handleDesktopToggle" 
-        :is-collapsed="!isNavActive" 
-      />
-    </aside>
+          <Navbar 
+            @toggle-nav="handleDesktopToggle" 
+            :is-collapsed="!(isNavActive || isMobileOpen)" 
+          />
+        </aside>
 
     <main :class="['main-content', { 'shifted': isNavActive }]">
       <router-view />

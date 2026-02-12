@@ -69,51 +69,84 @@ td { padding: 15px; border-top: 1px solid #eee; vertical-align: middle; }
 .page-numbers strong { color: #42b883; }
 
 /* --- DISEÑO RESPONSIVE: TABLA CLÁSICA CON SCROLL --- */
+/* --- DISEÑO RESPONSIVE GLOBAL (Móvil) --- */
 @media (max-width: 768px) {
   
-  /* 1. Restauramos el comportamiento natural de la tabla */
+  /* === PARTE 1: TABLA CLÁSICA === */
   table { display: table !important; }
   thead { display: table-header-group !important; }
   tbody { display: table-row-group !important; }
   tr { display: table-row !important; }
   th, td { display: table-cell !important; }
 
-  /* 2. Forzamos el scroll horizontal para que no se amontone nada */
   .table-wrapper {
-    overflow-x: auto !important; /* Permite deslizar a los lados */
+    overflow-x: auto !important;
     display: block;
     width: 100%;
     -webkit-overflow-scrolling: touch;
     border: 1px solid #ddd;
     border-radius: 12px;
+    background: white; /* Fondo blanco para la tabla */
   }
 
-  /* Le damos un ancho mínimo a la tabla para que obligue al scroll */
   table {
     min-width: 750px; 
     background-color: white;
   }
 
-  /* 3. Ajustamos el color del texto para que sea visible (Negro sobre Blanco) */
   td, th {
-    color: #333 !important;
+    color: #333 !important; /* Texto negro */
     padding: 12px 8px !important;
-    white-space: nowrap; /* Evita que los nombres se corten en dos líneas */
+    white-space: nowrap;
   }
 
-  /* 4. Ajustes de la cabecera de la página */
   .table-header {
     flex-direction: column;
     gap: 15px;
     align-items: stretch;
   }
   
-  .btn-add {
-    width: 100%;
-    justify-content: center;
-  }
+  .btn-add { width: 100%; justify-content: center; }
+  .search-box input { margin-bottom: 10px; }
+
+
+/* === PARTE 2: EL MENÚ LATERAL (CORREGIDO) === */
   
-  .search-box input {
-    margin-bottom: 10px;
+  /* 1. Forzar que el contenedor del menú ocupe todo el ancho */
+  .sidebar-wrapper nav, 
+  .sidebar-wrapper .sidebar { 
+    width: 100% !important; 
   }
-}
+
+  /* 2. ALINEACIÓN A LA IZQUIERDA (Esto arregla los iconos centrados) */
+  /* Buscamos los enlaces (a) o items de lista (li) dentro del menú abierto */
+  .sidebar-wrapper.mobile-open a,
+  .sidebar-wrapper.mobile-open li,
+  .sidebar-wrapper.mobile-open .menu-item {
+    justify-content: flex-start !important; /* Alineación a la izquierda */
+    padding-left: 20px !important;          /* Espacio desde el borde */
+    text-align: left !important;
+    width: 100% !important;
+    display: flex !important;               /* Asegura que sea flex para alinear */
+    align-items: center !important;
+  }
+
+  /* 3. FORZAR VISIBILIDAD DEL TEXTO */
+  /* Buscamos los spans dentro del menú abierto */
+  .sidebar-wrapper.mobile-open span,
+  .sidebar-wrapper.mobile-open .link-text {
+    display: block !important;       /* Que aparezcan sí o sí */
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: auto !important;
+    margin-left: 15px !important;    /* Separación entre icono y texto */
+    font-size: 1rem !important;
+    color: white !important;
+  }
+
+  /* 4. Ocultar botones internos que estorben */
+  .sidebar-wrapper .toggle-btn,
+  .sidebar-wrapper .collapse-icon {
+    display: none !important;
+  }
+} 
